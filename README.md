@@ -1,7 +1,6 @@
-## Envio Indexer
+## Morpho Blue Envio
 
-*Please refer to the [documentation website](https://docs.envio.dev) for a thorough guide on all [Envio](https://envio.dev) indexer features*
-
+This is the indexer for Morpho Blue
 ### Run
 
 ```bash
