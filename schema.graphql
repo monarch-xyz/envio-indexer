@@ -1,0 +1,133 @@
+type Morpho_AccrueInterest {
+  id: ID!
+  event_id: String!
+  prevBorrowRate: BigInt!
+  interest: BigInt!
+  feeShares: BigInt!
+}
+
+type Morpho_Borrow {
+  id: ID!
+  event_id: String!
+  caller: String!
+  onBehalf: String!
+  receiver: String!
+  assets: BigInt!
+  shares: BigInt!
+}
+
+type Morpho_CreateMarket {
+  id: ID!
+  event_id: String!
+  marketParams_0: String!
+  marketParams_1: String!
+  marketParams_2: String!
+  marketParams_3: String!
+  marketParams_4: BigInt!
+}
+
+type Morpho_EnableIrm {
+  id: ID!
+  irm: String!
+}
+
+type Morpho_EnableLltv {
+  id: ID!
+  lltv: BigInt!
+}
+
+type Morpho_FlashLoan {
+  id: ID!
+  caller: String!
+  token: String!
+  assets: BigInt!
+}
+
+type Morpho_IncrementNonce {
+  id: ID!
+  caller: String!
+  authorizer: String!
+  usedNonce: BigInt!
+}
+
+type Morpho_Liquidate {
+  id: ID!
+  event_id: String!
+  caller: String!
+  borrower: String!
+  repaidAssets: BigInt!
+  repaidShares: BigInt!
+  seizedAssets: BigInt!
+  badDebtAssets: BigInt!
+  badDebtShares: BigInt!
+}
+
+type Morpho_Repay {
+  id: ID!
+  event_id: String!
+  caller: String!
+  onBehalf: String!
+  assets: BigInt!
+  shares: BigInt!
+}
+
+type Morpho_SetAuthorization {
+  id: ID!
+  caller: String!
+  authorizer: String!
+  authorized: String!
+  newIsAuthorized: Boolean!
+}
+
+type Morpho_SetFee {
+  id: ID!
+  event_id: String!
+  newFee: BigInt!
+}
+
+type Morpho_SetFeeRecipient {
+  id: ID!
+  newFeeRecipient: String!
+}
+
+type Morpho_SetOwner {
+  id: ID!
+  newOwner: String!
+}
+
+type Morpho_Supply {
+  id: ID!
+  event_id: String!
+  caller: String!
+  onBehalf: String!
+  assets: BigInt!
+  shares: BigInt!
+}
+
+type Morpho_SupplyCollateral {
+  id: ID!
+  event_id: String!
+  caller: String!
+  onBehalf: String!
+  assets: BigInt!
+}
+
+type Morpho_Withdraw {
+  id: ID!
+  event_id: String!
+  caller: String!
+  onBehalf: String!
+  receiver: String!
+  assets: BigInt!
+  shares: BigInt!
+}
+
+type Morpho_WithdrawCollateral {
+  id: ID!
+  event_id: String!
+  caller: String!
+  onBehalf: String!
+  receiver: String!
+  assets: BigInt!
+}
+
