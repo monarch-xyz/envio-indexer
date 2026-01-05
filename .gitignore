@@ -37,3 +37,4 @@ build
 .env
 
 node_modules/
+.claude

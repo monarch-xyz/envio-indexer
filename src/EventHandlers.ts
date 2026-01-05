@@ -1,234 +1,150 @@
-/*
- * Please refer to https://docs.envio.dev for a thorough guide on all Envio indexer features
+/**
+ * Morpho Event Handlers
+ * Combines event tracking (raw events) and state tracking (Market, Position, Authorization)
  */
+import { Morpho } from "generated";
+
+// Event tracking - raw event entity storage
 import {
-  Morpho,
-  Morpho_AccrueInterest,
-  Morpho_Borrow,
-  Morpho_CreateMarket,
-  Morpho_EnableIrm,
-  Morpho_EnableLltv,
-  Morpho_FlashLoan,
-  Morpho_IncrementNonce,
-  Morpho_Liquidate,
-  Morpho_Repay,
-  Morpho_SetAuthorization,
-  Morpho_SetFee,
-  Morpho_SetFeeRecipient,
-  Morpho_SetOwner,
-  Morpho_Supply,
-  Morpho_SupplyCollateral,
-  Morpho_Withdraw,
-  Morpho_WithdrawCollateral,
-} from "generated";
+  trackAccrueInterest,
+  trackBorrow,
+  trackCreateMarket,
+  trackEnableIrm,
+  trackEnableLltv,
+  trackFlashLoan,
+  trackIncrementNonce,
+  trackLiquidate,
+  trackRepay,
+  trackSetAuthorization,
+  trackSetFee,
+  trackSetFeeRecipient,
+  trackSetOwner,
+  trackSupply,
+  trackSupplyCollateral,
+  trackWithdraw,
+  trackWithdrawCollateral,
+} from "./eventTracking";
 
-Morpho.AccrueInterest.handler(async ({ event, context }) => {
-  const entity: Morpho_AccrueInterest = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    event_id: event.params.id,
-    prevBorrowRate: event.params.prevBorrowRate,
-    interest: event.params.interest,
-    feeShares: event.params.feeShares,
-  };
+// State tracking - Market, Position, Authorization updates
+import {
+  updateStateOnCreateMarket,
+  updateStateOnSetFee,
+  updateStateOnAccrueInterest,
+  updateStateOnSupply,
+  updateStateOnWithdraw,
+  updateStateOnSupplyCollateral,
+  updateStateOnWithdrawCollateral,
+  updateStateOnBorrow,
+  updateStateOnRepay,
+  updateStateOnLiquidate,
+  updateStateOnSetAuthorization,
+} from "./stateTracking";
 
-  context.Morpho_AccrueInterest.set(entity);
-});
-
-Morpho.Borrow.handler(async ({ event, context }) => {
-  const entity: Morpho_Borrow = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    event_id: event.params.id,
-    caller: event.params.caller,
-    onBehalf: event.params.onBehalf,
-    receiver: event.params.receiver,
-    assets: event.params.assets,
-    shares: event.params.shares,
-  };
-
-  context.Morpho_Borrow.set(entity);
-});
+// ============================================
+// Events with State Tracking
+// ============================================
 
 Morpho.CreateMarket.handler(async ({ event, context }) => {
-  const entity: Morpho_CreateMarket = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    event_id: event.params.id,
-    marketParams_0: event.params.marketParams
-        [0]
-    ,
-    marketParams_1: event.params.marketParams
-        [1]
-    ,
-    marketParams_2: event.params.marketParams
-        [2]
-    ,
-    marketParams_3: event.params.marketParams
-        [3]
-    ,
-    marketParams_4: event.params.marketParams
-        [4]
-    ,
-  };
-
-  context.Morpho_CreateMarket.set(entity);
-});
-
-Morpho.EnableIrm.handler(async ({ event, context }) => {
-  const entity: Morpho_EnableIrm = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    irm: event.params.irm,
-  };
-
-  context.Morpho_EnableIrm.set(entity);
-});
-
-Morpho.EnableLltv.handler(async ({ event, context }) => {
-  const entity: Morpho_EnableLltv = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    lltv: event.params.lltv,
-  };
-
-  context.Morpho_EnableLltv.set(entity);
-});
-
-Morpho.FlashLoan.handler(async ({ event, context }) => {
-  const entity: Morpho_FlashLoan = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    caller: event.params.caller,
-    token: event.params.token,
-    assets: event.params.assets,
-  };
-
-  context.Morpho_FlashLoan.set(entity);
-});
-
-Morpho.IncrementNonce.handler(async ({ event, context }) => {
-  const entity: Morpho_IncrementNonce = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    caller: event.params.caller,
-    authorizer: event.params.authorizer,
-    usedNonce: event.params.usedNonce,
-  };
-
-  context.Morpho_IncrementNonce.set(entity);
-});
-
-Morpho.Liquidate.handler(async ({ event, context }) => {
-  const entity: Morpho_Liquidate = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    event_id: event.params.id,
-    caller: event.params.caller,
-    borrower: event.params.borrower,
-    repaidAssets: event.params.repaidAssets,
-    repaidShares: event.params.repaidShares,
-    seizedAssets: event.params.seizedAssets,
-    badDebtAssets: event.params.badDebtAssets,
-    badDebtShares: event.params.badDebtShares,
-  };
-
-  context.Morpho_Liquidate.set(entity);
-});
-
-Morpho.Repay.handler(async ({ event, context }) => {
-  const entity: Morpho_Repay = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    event_id: event.params.id,
-    caller: event.params.caller,
-    onBehalf: event.params.onBehalf,
-    assets: event.params.assets,
-    shares: event.params.shares,
-  };
-
-  context.Morpho_Repay.set(entity);
-});
-
-Morpho.SetAuthorization.handler(async ({ event, context }) => {
-  const entity: Morpho_SetAuthorization = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    caller: event.params.caller,
-    authorizer: event.params.authorizer,
-    authorized: event.params.authorized,
-    newIsAuthorized: event.params.newIsAuthorized,
-  };
-
-  context.Morpho_SetAuthorization.set(entity);
+  // Track raw event
+  trackCreateMarket(event, context);
+  // Update state
+  await updateStateOnCreateMarket(event, context);
 });
 
 Morpho.SetFee.handler(async ({ event, context }) => {
-  const entity: Morpho_SetFee = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    event_id: event.params.id,
-    newFee: event.params.newFee,
-  };
-
-  context.Morpho_SetFee.set(entity);
+  // Track raw event
+  trackSetFee(event, context);
+  // Update state
+  await updateStateOnSetFee(event, context);
 });
 
-Morpho.SetFeeRecipient.handler(async ({ event, context }) => {
-  const entity: Morpho_SetFeeRecipient = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    newFeeRecipient: event.params.newFeeRecipient,
-  };
-
-  context.Morpho_SetFeeRecipient.set(entity);
-});
-
-Morpho.SetOwner.handler(async ({ event, context }) => {
-  const entity: Morpho_SetOwner = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    newOwner: event.params.newOwner,
-  };
-
-  context.Morpho_SetOwner.set(entity);
+Morpho.AccrueInterest.handler(async ({ event, context }) => {
+  // Track raw event
+  trackAccrueInterest(event, context);
+  // Update state
+  await updateStateOnAccrueInterest(event, context);
 });
 
 Morpho.Supply.handler(async ({ event, context }) => {
-  const entity: Morpho_Supply = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    event_id: event.params.id,
-    caller: event.params.caller,
-    onBehalf: event.params.onBehalf,
-    assets: event.params.assets,
-    shares: event.params.shares,
-  };
-
-  context.Morpho_Supply.set(entity);
-});
-
-Morpho.SupplyCollateral.handler(async ({ event, context }) => {
-  const entity: Morpho_SupplyCollateral = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    event_id: event.params.id,
-    caller: event.params.caller,
-    onBehalf: event.params.onBehalf,
-    assets: event.params.assets,
-  };
-
-  context.Morpho_SupplyCollateral.set(entity);
+  // Track raw event
+  trackSupply(event, context);
+  // Update state
+  await updateStateOnSupply(event, context);
 });
 
 Morpho.Withdraw.handler(async ({ event, context }) => {
-  const entity: Morpho_Withdraw = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    event_id: event.params.id,
-    caller: event.params.caller,
-    onBehalf: event.params.onBehalf,
-    receiver: event.params.receiver,
-    assets: event.params.assets,
-    shares: event.params.shares,
-  };
+  // Track raw event
+  trackWithdraw(event, context);
+  // Update state
+  await updateStateOnWithdraw(event, context);
+});
 
-  context.Morpho_Withdraw.set(entity);
+Morpho.SupplyCollateral.handler(async ({ event, context }) => {
+  // Track raw event
+  trackSupplyCollateral(event, context);
+  // Update state
+  await updateStateOnSupplyCollateral(event, context);
 });
 
 Morpho.WithdrawCollateral.handler(async ({ event, context }) => {
-  const entity: Morpho_WithdrawCollateral = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    event_id: event.params.id,
-    caller: event.params.caller,
-    onBehalf: event.params.onBehalf,
-    receiver: event.params.receiver,
-    assets: event.params.assets,
-  };
+  // Track raw event
+  trackWithdrawCollateral(event, context);
+  // Update state
+  await updateStateOnWithdrawCollateral(event, context);
+});
 
-  context.Morpho_WithdrawCollateral.set(entity);
+Morpho.Borrow.handler(async ({ event, context }) => {
+  // Track raw event
+  trackBorrow(event, context);
+  // Update state
+  await updateStateOnBorrow(event, context);
+});
+
+Morpho.Repay.handler(async ({ event, context }) => {
+  // Track raw event
+  trackRepay(event, context);
+  // Update state
+  await updateStateOnRepay(event, context);
+});
+
+Morpho.Liquidate.handler(async ({ event, context }) => {
+  // Track raw event
+  trackLiquidate(event, context);
+  // Update state
+  await updateStateOnLiquidate(event, context);
+});
+
+Morpho.SetAuthorization.handler(async ({ event, context }) => {
+  // Track raw event
+  trackSetAuthorization(event, context);
+  // Update state
+  await updateStateOnSetAuthorization(event, context);
+});
+
+// ============================================
+// Events without State Tracking (raw tracking only)
+// ============================================
+
+Morpho.EnableIrm.handler(async ({ event, context }) => {
+  trackEnableIrm(event, context);
+});
+
+Morpho.EnableLltv.handler(async ({ event, context }) => {
+  trackEnableLltv(event, context);
+});
+
+Morpho.FlashLoan.handler(async ({ event, context }) => {
+  trackFlashLoan(event, context);
+});
+
+Morpho.IncrementNonce.handler(async ({ event, context }) => {
+  trackIncrementNonce(event, context);
+});
+
+Morpho.SetFeeRecipient.handler(async ({ event, context }) => {
+  trackSetFeeRecipient(event, context);
+});
+
+Morpho.SetOwner.handler(async ({ event, context }) => {
+  trackSetOwner(event, context);
 });

@@ -5,22 +5,82 @@ contracts:
   handler: src/EventHandlers.ts
   events:
   - event: AccrueInterest(bytes32 indexed id, uint256 prevBorrowRate, uint256 interest, uint256 feeShares)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: Borrow(bytes32 indexed id, address caller, address indexed onBehalf, address indexed receiver, uint256 assets, uint256 shares)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: CreateMarket(bytes32 indexed id, (address,address,address,address,uint256) marketParams)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: EnableIrm(address indexed irm)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: EnableLltv(uint256 lltv)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: FlashLoan(address indexed caller, address indexed token, uint256 assets)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: IncrementNonce(address indexed caller, address indexed authorizer, uint256 usedNonce)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: Liquidate(bytes32 indexed id, address indexed caller, address indexed borrower, uint256 repaidAssets, uint256 repaidShares, uint256 seizedAssets, uint256 badDebtAssets, uint256 badDebtShares)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: Repay(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets, uint256 shares)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: SetAuthorization(address indexed caller, address indexed authorizer, address indexed authorized, bool newIsAuthorized)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: SetFee(bytes32 indexed id, uint256 newFee)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: SetFeeRecipient(address indexed newFeeRecipient)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: SetOwner(address indexed newOwner)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: Supply(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets, uint256 shares)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: SupplyCollateral(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: Withdraw(bytes32 indexed id, address caller, address indexed onBehalf, address indexed receiver, uint256 assets, uint256 shares)
+    field_selection:
+      transaction_fields:
+        - hash
   - event: WithdrawCollateral(bytes32 indexed id, address caller, address indexed onBehalf, address indexed receiver, uint256 assets)
+    field_selection:
+      transaction_fields:
+        - hash
+
+- name: AdaptiveCurveIrm
+  handler: src/EventHandlers.ts
+  events:
+  - event: BorrowRateUpdate(bytes32 indexed id, uint256 avgBorrowRate, uint256 rateAtTarget)
+    field_selection:
+      transaction_fields:
+        - hash
+
 networks:
 - id: 1
   start_block: 0
@@ -28,18 +88,27 @@ networks:
   - name: Morpho
     address:
     - 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb
+  - name: AdaptiveCurveIrm
+    address:
+    - 0x870ac11d48b15db9a138cf899d20f13f79ba00bc
 - id: 130
   start_block: 0
   contracts:
   - name: Morpho
     address:
     - 0x8f5ae9CddB9f68de460C77730b018Ae7E04a140A
+  - name: AdaptiveCurveIrm
+    address:
+    - 0x9a6061d51743b31d2c3be75d83781fa423f53f0e
 - id: 137
   start_block: 0
   contracts:
   - name: Morpho
     address:
     - 0x1bF0c2541F820E775182832f06c0B7Fc27A25f67
+  - name: AdaptiveCurveIrm
+    address:
+    - 0xe675a2161d4a6e2de2eed70ac98eebf257fbf0b0
 - id: 143
   start_block: 0
   contracts:
@@ -58,11 +127,17 @@ networks:
   - name: Morpho
     address:
     - 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb
+  - name: AdaptiveCurveIrm
+    address:
+    - 0x46415998764c29ab2a25cbea6254146d50d22687
 - id: 42161
   start_block: 0
   contracts:
   - name: Morpho
     address:
     - 0x6c247b1F6182318877311737BaC0844bAa518F5e
+  - name: AdaptiveCurveIrm
+    address:
+    - 0x66f30587fb8d4206918deb78eca7d5ebbafd06da
 unordered_multichain_mode: true
 preload_handlers: true

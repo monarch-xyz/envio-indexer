@@ -1,39 +1,54 @@
 type Morpho_AccrueInterest {
   id: ID!
-  event_id: String!
+  market_id: String!
   prevBorrowRate: BigInt!
   interest: BigInt!
   feeShares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_Borrow {
   id: ID!
-  event_id: String!
+  market_id: String!
   caller: String!
   onBehalf: String!
   receiver: String!
   assets: BigInt!
   shares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_CreateMarket {
   id: ID!
-  event_id: String!
+  market_id: String!
   marketParams_0: String!
   marketParams_1: String!
   marketParams_2: String!
   marketParams_3: String!
   marketParams_4: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_EnableIrm {
   id: ID!
   irm: String!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_EnableLltv {
   id: ID!
   lltv: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_FlashLoan {
@@ -41,6 +56,9 @@ type Morpho_FlashLoan {
   caller: String!
   token: String!
   assets: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_IncrementNonce {
@@ -48,11 +66,14 @@ type Morpho_IncrementNonce {
   caller: String!
   authorizer: String!
   usedNonce: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_Liquidate {
   id: ID!
-  event_id: String!
+  market_id: String!
   caller: String!
   borrower: String!
   repaidAssets: BigInt!
@@ -60,15 +81,21 @@ type Morpho_Liquidate {
   seizedAssets: BigInt!
   badDebtAssets: BigInt!
   badDebtShares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_Repay {
   id: ID!
-  event_id: String!
+  market_id: String!
   caller: String!
   onBehalf: String!
   assets: BigInt!
   shares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_SetAuthorization {
@@ -77,57 +104,145 @@ type Morpho_SetAuthorization {
   authorizer: String!
   authorized: String!
   newIsAuthorized: Boolean!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_SetFee {
   id: ID!
-  event_id: String!
+  market_id: String!
   newFee: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_SetFeeRecipient {
   id: ID!
   newFeeRecipient: String!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_SetOwner {
   id: ID!
   newOwner: String!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_Supply {
   id: ID!
-  event_id: String!
+  market_id: String!
   caller: String!
   onBehalf: String!
   assets: BigInt!
   shares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_SupplyCollateral {
   id: ID!
-  event_id: String!
+  market_id: String!
   caller: String!
   onBehalf: String!
   assets: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_Withdraw {
   id: ID!
-  event_id: String!
+  market_id: String!
   caller: String!
   onBehalf: String!
   receiver: String!
   assets: BigInt!
   shares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
 type Morpho_WithdrawCollateral {
   id: ID!
-  event_id: String!
+  market_id: String!
   caller: String!
   onBehalf: String!
   receiver: String!
   assets: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }
 
+# ============================================
+# AdaptiveCurveIrm Events
+# ============================================
+
+type AdaptiveCurveIrm_BorrowRateUpdate {
+  id: ID!
+  market_id: String!
+  avgBorrowRate: BigInt!
+  rateAtTarget: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+}
+
+# ============================================
+# State Entities - Track protocol state
+# ============================================
+
+type Market {
+  id: ID!                      # "{chainId}_{marketId}"
+  chainId: Int!
+  marketId: String!            # bytes32 market id
+
+  # MarketParams (immutable after creation)
+  loanToken: String!
+  collateralToken: String!
+  oracle: String!
+  irm: String!
+  lltv: BigInt!
+
+  # Market state (mutable)
+  totalSupplyAssets: BigInt!
+  totalSupplyShares: BigInt!
+  totalBorrowAssets: BigInt!
+  totalBorrowShares: BigInt!
+  lastUpdate: BigInt!
+  fee: BigInt!
+
+  # AdaptiveCurveIrm state
+  rateAtTarget: BigInt!
+}
+
+type Position {
+  id: ID!                      # "{chainId}_{marketId}_{user}"
+  chainId: Int!
+  marketId: String!
+  user: String!
+
+  # Position state
+  supplyShares: BigInt!
+  borrowShares: BigInt!
+  collateral: BigInt!
+
+  # Relationship
+  market_id: String!           # FK to Market
+}
+
+type Authorization {
+  id: ID!                      # "{chainId}_{authorizer}_{authorizee}"
+  chainId: Int!
+  authorizer: String!
+  authorizee: String!
+  isAuthorized: Boolean!
+}
