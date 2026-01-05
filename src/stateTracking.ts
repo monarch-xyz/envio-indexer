@@ -437,3 +437,28 @@ export async function updateStateOnSetAuthorization(
 
   context.Authorization.set(authorization);
 }
+
+// ============================================
+// AdaptiveCurveIrm State Updates
+// ============================================
+
+/**
+ * BorrowRateUpdate - Updates Market.rateAtTarget
+ */
+export async function updateStateOnBorrowRateUpdate(
+  event: {
+    chainId: number;
+    params: { id: string; rateAtTarget: bigint };
+  },
+  context: StateContext
+) {
+  const id = marketId(event.chainId, event.params.id);
+  const market = await context.Market.get(id);
+
+  if (market) {
+    context.Market.set({
+      ...market,
+      rateAtTarget: event.params.rateAtTarget,
+    });
+  }
+}

@@ -2,7 +2,7 @@
  * Morpho Event Handlers
  * Combines event tracking (raw events) and state tracking (Market, Position, Authorization)
  */
-import { Morpho } from "generated";
+import { Morpho, AdaptiveCurveIrm } from "generated";
 
 // Event tracking - raw event entity storage
 import {
@@ -23,6 +23,7 @@ import {
   trackSupplyCollateral,
   trackWithdraw,
   trackWithdrawCollateral,
+  trackBorrowRateUpdate,
 } from "./eventTracking";
 
 // State tracking - Market, Position, Authorization updates
@@ -38,10 +39,11 @@ import {
   updateStateOnRepay,
   updateStateOnLiquidate,
   updateStateOnSetAuthorization,
+  updateStateOnBorrowRateUpdate,
 } from "./stateTracking";
 
 // ============================================
-// Events with State Tracking
+// Morpho Events with State Tracking
 // ============================================
 
 Morpho.CreateMarket.handler(async ({ event, context }) => {
@@ -122,7 +124,7 @@ Morpho.SetAuthorization.handler(async ({ event, context }) => {
 });
 
 // ============================================
-// Events without State Tracking (raw tracking only)
+// Morpho Events without State Tracking (raw tracking only)
 // ============================================
 
 Morpho.EnableIrm.handler(async ({ event, context }) => {
@@ -147,4 +149,15 @@ Morpho.SetFeeRecipient.handler(async ({ event, context }) => {
 
 Morpho.SetOwner.handler(async ({ event, context }) => {
   trackSetOwner(event, context);
+});
+
+// ============================================
+// AdaptiveCurveIrm Events
+// ============================================
+
+AdaptiveCurveIrm.BorrowRateUpdate.handler(async ({ event, context }) => {
+  // Track raw event
+  trackBorrowRateUpdate(event, context);
+  // Update Market.rateAtTarget
+  await updateStateOnBorrowRateUpdate(event, context);
 });

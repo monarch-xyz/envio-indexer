@@ -20,6 +20,7 @@ import type {
   Morpho_SupplyCollateral,
   Morpho_Withdraw,
   Morpho_WithdrawCollateral,
+  AdaptiveCurveIrm_BorrowRateUpdate,
 } from "generated";
 
 type EventContext = {
@@ -40,6 +41,7 @@ type EventContext = {
   Morpho_SupplyCollateral: { set: (entity: Morpho_SupplyCollateral) => void };
   Morpho_Withdraw: { set: (entity: Morpho_Withdraw) => void };
   Morpho_WithdrawCollateral: { set: (entity: Morpho_WithdrawCollateral) => void };
+  AdaptiveCurveIrm_BorrowRateUpdate: { set: (entity: AdaptiveCurveIrm_BorrowRateUpdate) => void };
 };
 
 // Helper to generate unique event ID
@@ -441,4 +443,30 @@ export function trackWithdrawCollateral(
     txHash: event.transaction.hash,
   };
   context.Morpho_WithdrawCollateral.set(entity);
+}
+
+// ============================================
+// AdaptiveCurveIrm Events
+// ============================================
+
+export function trackBorrowRateUpdate(
+  event: {
+    chainId: number;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string };
+    params: { id: string; avgBorrowRate: bigint; rateAtTarget: bigint };
+  },
+  context: EventContext
+) {
+  const entity: AdaptiveCurveIrm_BorrowRateUpdate = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    market_id: event.params.id,
+    avgBorrowRate: event.params.avgBorrowRate,
+    rateAtTarget: event.params.rateAtTarget,
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+  };
+  context.AdaptiveCurveIrm_BorrowRateUpdate.set(entity);
 }
