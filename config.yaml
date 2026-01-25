@@ -12,6 +12,7 @@ contracts:
     field_selection:
       transaction_fields:
         - hash
+        - input
   - event: CreateMarket(bytes32 indexed id, (address,address,address,address,uint256) marketParams)
     field_selection:
       transaction_fields:
@@ -36,6 +37,7 @@ contracts:
     field_selection:
       transaction_fields:
         - hash
+        - input
   - event: Repay(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets, uint256 shares)
     field_selection:
       transaction_fields:
@@ -60,18 +62,22 @@ contracts:
     field_selection:
       transaction_fields:
         - hash
+        - input
   - event: SupplyCollateral(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets)
     field_selection:
       transaction_fields:
         - hash
+        - input
   - event: Withdraw(bytes32 indexed id, address caller, address indexed onBehalf, address indexed receiver, uint256 assets, uint256 shares)
     field_selection:
       transaction_fields:
         - hash
+        - input
   - event: WithdrawCollateral(bytes32 indexed id, address caller, address indexed onBehalf, address indexed receiver, uint256 assets)
     field_selection:
       transaction_fields:
         - hash
+        - input
 
 - name: AdaptiveCurveIrm
   handler: src/EventHandlers.ts

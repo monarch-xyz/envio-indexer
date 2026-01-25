@@ -48,6 +48,12 @@ type EventContext = {
 const eventId = (chainId: number, blockNumber: number, logIndex: number) =>
   `${chainId}_${blockNumber}_${logIndex}`;
 
+// Helper to detect Monarch frontend transactions (batched rebalance)
+const isMonarchTx = (input: string | undefined): boolean => {
+  if (!input) return false;
+  return input.toLowerCase().endsWith("beef");
+};
+
 export function trackAccrueInterest(
   event: {
     chainId: number;
@@ -76,7 +82,7 @@ export function trackBorrow(
     chainId: number;
     block: { number: number; timestamp: number };
     logIndex: number;
-    transaction: { hash: string };
+    transaction: { hash: string; input?: string };
     params: { id: string; caller: string; onBehalf: string; receiver: string; assets: bigint; shares: bigint };
   },
   context: EventContext
@@ -92,6 +98,7 @@ export function trackBorrow(
     timestamp: BigInt(event.block.timestamp),
     chainId: event.chainId,
     txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
   };
   context.Morpho_Borrow.set(entity);
 }
@@ -210,7 +217,7 @@ export function trackLiquidate(
     chainId: number;
     block: { number: number; timestamp: number };
     logIndex: number;
-    transaction: { hash: string };
+    transaction: { hash: string; input?: string };
     params: {
       id: string;
       caller: string;
@@ -237,6 +244,7 @@ export function trackLiquidate(
     timestamp: BigInt(event.block.timestamp),
     chainId: event.chainId,
     txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
   };
   context.Morpho_Liquidate.set(entity);
 }
@@ -354,7 +362,7 @@ export function trackSupply(
     chainId: number;
     block: { number: number; timestamp: number };
     logIndex: number;
-    transaction: { hash: string };
+    transaction: { hash: string; input?: string };
     params: { id: string; caller: string; onBehalf: string; assets: bigint; shares: bigint };
   },
   context: EventContext
@@ -369,6 +377,7 @@ export function trackSupply(
     timestamp: BigInt(event.block.timestamp),
     chainId: event.chainId,
     txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
   };
   context.Morpho_Supply.set(entity);
 }
@@ -378,7 +387,7 @@ export function trackSupplyCollateral(
     chainId: number;
     block: { number: number; timestamp: number };
     logIndex: number;
-    transaction: { hash: string };
+    transaction: { hash: string; input?: string };
     params: { id: string; caller: string; onBehalf: string; assets: bigint };
   },
   context: EventContext
@@ -392,6 +401,7 @@ export function trackSupplyCollateral(
     timestamp: BigInt(event.block.timestamp),
     chainId: event.chainId,
     txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
   };
   context.Morpho_SupplyCollateral.set(entity);
 }
@@ -401,7 +411,7 @@ export function trackWithdraw(
     chainId: number;
     block: { number: number; timestamp: number };
     logIndex: number;
-    transaction: { hash: string };
+    transaction: { hash: string; input?: string };
     params: { id: string; caller: string; onBehalf: string; receiver: string; assets: bigint; shares: bigint };
   },
   context: EventContext
@@ -417,6 +427,7 @@ export function trackWithdraw(
     timestamp: BigInt(event.block.timestamp),
     chainId: event.chainId,
     txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
   };
   context.Morpho_Withdraw.set(entity);
 }
@@ -426,7 +437,7 @@ export function trackWithdrawCollateral(
     chainId: number;
     block: { number: number; timestamp: number };
     logIndex: number;
-    transaction: { hash: string };
+    transaction: { hash: string; input?: string };
     params: { id: string; caller: string; onBehalf: string; receiver: string; assets: bigint };
   },
   context: EventContext
@@ -441,6 +452,7 @@ export function trackWithdrawCollateral(
     timestamp: BigInt(event.block.timestamp),
     chainId: event.chainId,
     txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
   };
   context.Morpho_WithdrawCollateral.set(entity);
 }

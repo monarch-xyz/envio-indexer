@@ -20,6 +20,7 @@ type Morpho_Borrow {
   timestamp: BigInt!
   chainId: Int!
   txHash: String!
+  isMonarch: Boolean!
 }
 
 type Morpho_CreateMarket {
@@ -84,6 +85,7 @@ type Morpho_Liquidate {
   timestamp: BigInt!
   chainId: Int!
   txHash: String!
+  isMonarch: Boolean!
 }
 
 type Morpho_Repay {
@@ -144,6 +146,7 @@ type Morpho_Supply {
   timestamp: BigInt!
   chainId: Int!
   txHash: String!
+  isMonarch: Boolean!
 }
 
 type Morpho_SupplyCollateral {
@@ -155,6 +158,7 @@ type Morpho_SupplyCollateral {
   timestamp: BigInt!
   chainId: Int!
   txHash: String!
+  isMonarch: Boolean!
 }
 
 type Morpho_Withdraw {
@@ -168,6 +172,7 @@ type Morpho_Withdraw {
   timestamp: BigInt!
   chainId: Int!
   txHash: String!
+  isMonarch: Boolean!
 }
 
 type Morpho_WithdrawCollateral {
@@ -180,6 +185,7 @@ type Morpho_WithdrawCollateral {
   timestamp: BigInt!
   chainId: Int!
   txHash: String!
+  isMonarch: Boolean!
 }
 
 # ============================================
