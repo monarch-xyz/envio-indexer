@@ -230,6 +230,7 @@ networks:
   - name: VaultV2Factory
     address:
     - 0xA1D94F746dEfa1928926b84fB2596c06926C0405
+  - name: VaultV2
 - id: 130
   start_block: 0
   contracts:
@@ -242,6 +243,7 @@ networks:
   - name: VaultV2Factory
     address:
     - 0xC9b34c108014B44e5a189A830e7e04c56704a0c9
+  - name: VaultV2
 - id: 137
   start_block: 0
   contracts:
@@ -254,6 +256,7 @@ networks:
   - name: VaultV2Factory
     address:
     - 0xC11a53eE9B1eCc7a068D8e40F8F17926584F97Cf
+  - name: VaultV2
 - id: 143
   start_block: 0
   contracts:
@@ -263,6 +266,7 @@ networks:
   - name: VaultV2Factory
     address:
     - 0x8B2F922162FBb60A6a072cC784A2E4168fB0bb0c
+  - name: VaultV2
 - id: 999
   start_block: 0
   contracts:
@@ -272,6 +276,7 @@ networks:
   - name: VaultV2Factory
     address:
     - 0xD7217E5687FF1071356C780b5fe4803D9D967da7
+  - name: VaultV2
 - id: 8453
   start_block: 0
   contracts:
@@ -284,6 +289,7 @@ networks:
   - name: VaultV2Factory
     address:
     - 0x4501125508079A99ebBebCE205DeC9593C2b5857
+  - name: VaultV2
 - id: 42161
   start_block: 0
   contracts:
@@ -296,5 +302,6 @@ networks:
   - name: VaultV2Factory
     address:
     - 0x6b46fa3cc9EBF8aB230aBAc664E37F2966Bf7971
+  - name: VaultV2
 unordered_multichain_mode: true
 preload_handlers: true
