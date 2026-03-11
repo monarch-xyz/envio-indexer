@@ -2,7 +2,7 @@
  * Morpho Event Handlers
  * Combines event tracking (raw events) and state tracking (Market, Position, Authorization)
  */
-import { Morpho, AdaptiveCurveIrm } from "generated";
+import { Morpho, AdaptiveCurveIrm, VaultV2Factory, VaultV2 } from "generated";
 
 // Event tracking - raw event entity storage
 import {
@@ -24,6 +24,12 @@ import {
   trackWithdraw,
   trackWithdrawCollateral,
   trackBorrowRateUpdate,
+  trackCreateVaultV2,
+  trackVaultAllocate,
+  trackVaultDeallocate,
+  trackVaultDeposit,
+  trackVaultForceDeallocate,
+  trackVaultWithdraw,
 } from "./eventTracking";
 
 // State tracking - Market, Position, Authorization updates
@@ -40,7 +46,39 @@ import {
   updateStateOnLiquidate,
   updateStateOnSetAuthorization,
   updateStateOnBorrowRateUpdate,
+  updateStateOnCreateVaultV2,
+  updateStateOnVaultAddAdapter,
+  updateStateOnVaultDeposit,
+  updateStateOnVaultRemoveAdapter,
+  updateStateOnVaultSetAbsoluteCap,
+  updateStateOnVaultSetAdapterRegistry,
+  updateStateOnVaultSetCurator,
+  updateStateOnVaultSetForceDeallocatePenalty,
+  updateStateOnVaultSetIsAllocator,
+  updateStateOnVaultSetIsSentinel,
+  updateStateOnVaultSetManagementFee,
+  updateStateOnVaultSetManagementFeeRecipient,
+  updateStateOnVaultSetMaxRate,
+  updateStateOnVaultSetName,
+  updateStateOnVaultSetOwner,
+  updateStateOnVaultSetPerformanceFee,
+  updateStateOnVaultSetPerformanceFeeRecipient,
+  updateStateOnVaultSetReceiveAssetsGate,
+  updateStateOnVaultSetReceiveSharesGate,
+  updateStateOnVaultSetRelativeCap,
+  updateStateOnVaultSetSendAssetsGate,
+  updateStateOnVaultSetSendSharesGate,
+  updateStateOnVaultSetSymbol,
+  updateStateOnVaultWithdraw,
 } from "./stateTracking";
+import {
+  trackMorphoBlueTx,
+  trackVaultConfigTx,
+  trackVaultCreateTx,
+  trackVaultRebalanceTx,
+  trackVaultUserDepositTx,
+  trackVaultUserWithdrawTx,
+} from "./txTracking";
 
 // ============================================
 // Morpho Events with State Tracking
@@ -70,6 +108,7 @@ Morpho.AccrueInterest.handler(async ({ event, context }) => {
 Morpho.Supply.handler(async ({ event, context }) => {
   // Track raw event
   trackSupply(event, context);
+  await trackMorphoBlueTx(event, context);
   // Update state
   await updateStateOnSupply(event, context);
 });
@@ -77,6 +116,7 @@ Morpho.Supply.handler(async ({ event, context }) => {
 Morpho.Withdraw.handler(async ({ event, context }) => {
   // Track raw event
   trackWithdraw(event, context);
+  await trackMorphoBlueTx(event, context);
   // Update state
   await updateStateOnWithdraw(event, context);
 });
@@ -84,6 +124,7 @@ Morpho.Withdraw.handler(async ({ event, context }) => {
 Morpho.SupplyCollateral.handler(async ({ event, context }) => {
   // Track raw event
   trackSupplyCollateral(event, context);
+  await trackMorphoBlueTx(event, context);
   // Update state
   await updateStateOnSupplyCollateral(event, context);
 });
@@ -91,6 +132,7 @@ Morpho.SupplyCollateral.handler(async ({ event, context }) => {
 Morpho.WithdrawCollateral.handler(async ({ event, context }) => {
   // Track raw event
   trackWithdrawCollateral(event, context);
+  await trackMorphoBlueTx(event, context);
   // Update state
   await updateStateOnWithdrawCollateral(event, context);
 });
@@ -98,6 +140,7 @@ Morpho.WithdrawCollateral.handler(async ({ event, context }) => {
 Morpho.Borrow.handler(async ({ event, context }) => {
   // Track raw event
   trackBorrow(event, context);
+  await trackMorphoBlueTx(event, context);
   // Update state
   await updateStateOnBorrow(event, context);
 });
@@ -105,6 +148,7 @@ Morpho.Borrow.handler(async ({ event, context }) => {
 Morpho.Repay.handler(async ({ event, context }) => {
   // Track raw event
   trackRepay(event, context);
+  await trackMorphoBlueTx(event, context);
   // Update state
   await updateStateOnRepay(event, context);
 });
@@ -112,6 +156,7 @@ Morpho.Repay.handler(async ({ event, context }) => {
 Morpho.Liquidate.handler(async ({ event, context }) => {
   // Track raw event
   trackLiquidate(event, context);
+  await trackMorphoBlueTx(event, context);
   // Update state
   await updateStateOnLiquidate(event, context);
 });
@@ -160,4 +205,160 @@ AdaptiveCurveIrm.BorrowRateUpdate.handler(async ({ event, context }) => {
   trackBorrowRateUpdate(event, context);
   // Update Market.rateAtTarget
   await updateStateOnBorrowRateUpdate(event, context);
+});
+
+// ============================================
+// VaultV2 Events
+// ============================================
+
+VaultV2Factory.CreateVaultV2.contractRegister(({ event, context }) => {
+  context.addVaultV2(event.params.newVaultV2);
+});
+
+VaultV2Factory.CreateVaultV2.handler(async ({ event, context }) => {
+  trackCreateVaultV2(event, context);
+  await trackVaultCreateTx(event, context);
+  await updateStateOnCreateVaultV2(event, context);
+});
+
+VaultV2.AddAdapter.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultAddAdapter(event, context);
+});
+
+VaultV2.Allocate.handler(async ({ event, context }) => {
+  trackVaultAllocate(event, context);
+  await trackVaultRebalanceTx(event, context);
+});
+
+VaultV2.DecreaseAbsoluteCap.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetAbsoluteCap(event, context);
+});
+
+VaultV2.DecreaseRelativeCap.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetRelativeCap(event, context);
+});
+
+VaultV2.Deallocate.handler(async ({ event, context }) => {
+  trackVaultDeallocate(event, context);
+  await trackVaultRebalanceTx(event, context);
+});
+
+VaultV2.Deposit.handler(async ({ event, context }) => {
+  trackVaultDeposit(event, context);
+  await trackVaultUserDepositTx(event, context);
+  await updateStateOnVaultDeposit(event, context);
+});
+
+VaultV2.ForceDeallocate.handler(async ({ event, context }) => {
+  trackVaultForceDeallocate(event, context);
+  await trackVaultRebalanceTx(event, context);
+});
+
+VaultV2.IncreaseAbsoluteCap.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetAbsoluteCap(event, context);
+});
+
+VaultV2.IncreaseRelativeCap.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetRelativeCap(event, context);
+});
+
+VaultV2.RemoveAdapter.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultRemoveAdapter(event, context);
+});
+
+VaultV2.SetAdapterRegistry.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetAdapterRegistry(event, context);
+});
+
+VaultV2.SetCurator.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetCurator(event, context);
+});
+
+VaultV2.SetForceDeallocatePenalty.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetForceDeallocatePenalty(event, context);
+});
+
+VaultV2.SetIsAllocator.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetIsAllocator(event, context);
+});
+
+VaultV2.SetIsSentinel.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetIsSentinel(event, context);
+});
+
+VaultV2.SetManagementFee.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetManagementFee(event, context);
+});
+
+VaultV2.SetManagementFeeRecipient.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetManagementFeeRecipient(event, context);
+});
+
+VaultV2.SetMaxRate.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetMaxRate(event, context);
+});
+
+VaultV2.SetName.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetName(event, context);
+});
+
+VaultV2.SetOwner.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetOwner(event, context);
+});
+
+VaultV2.SetPerformanceFee.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetPerformanceFee(event, context);
+});
+
+VaultV2.SetPerformanceFeeRecipient.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetPerformanceFeeRecipient(event, context);
+});
+
+VaultV2.SetReceiveAssetsGate.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetReceiveAssetsGate(event, context);
+});
+
+VaultV2.SetReceiveSharesGate.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetReceiveSharesGate(event, context);
+});
+
+VaultV2.SetSendAssetsGate.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetSendAssetsGate(event, context);
+});
+
+VaultV2.SetSendSharesGate.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetSendSharesGate(event, context);
+});
+
+VaultV2.SetSymbol.handler(async ({ event, context }) => {
+  await trackVaultConfigTx(event, context);
+  await updateStateOnVaultSetSymbol(event, context);
+});
+
+VaultV2.Withdraw.handler(async ({ event, context }) => {
+  trackVaultWithdraw(event, context);
+  await trackVaultUserWithdrawTx(event, context);
+  await updateStateOnVaultWithdraw(event, context);
 });

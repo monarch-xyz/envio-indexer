@@ -11,6 +11,7 @@ type Morpho_AccrueInterest {
 
 type Morpho_Borrow {
   id: ID!
+  txContext: TxContext!
   market_id: String!
   caller: String!
   onBehalf: String!
@@ -74,6 +75,7 @@ type Morpho_IncrementNonce {
 
 type Morpho_Liquidate {
   id: ID!
+  txContext: TxContext!
   market_id: String!
   caller: String!
   borrower: String!
@@ -90,6 +92,7 @@ type Morpho_Liquidate {
 
 type Morpho_Repay {
   id: ID!
+  txContext: TxContext!
   market_id: String!
   caller: String!
   onBehalf: String!
@@ -98,6 +101,7 @@ type Morpho_Repay {
   timestamp: BigInt!
   chainId: Int!
   txHash: String!
+  isMonarch: Boolean!
 }
 
 type Morpho_SetAuthorization {
@@ -138,6 +142,7 @@ type Morpho_SetOwner {
 
 type Morpho_Supply {
   id: ID!
+  txContext: TxContext!
   market_id: String!
   caller: String!
   onBehalf: String!
@@ -151,6 +156,7 @@ type Morpho_Supply {
 
 type Morpho_SupplyCollateral {
   id: ID!
+  txContext: TxContext!
   market_id: String!
   caller: String!
   onBehalf: String!
@@ -163,6 +169,7 @@ type Morpho_SupplyCollateral {
 
 type Morpho_Withdraw {
   id: ID!
+  txContext: TxContext!
   market_id: String!
   caller: String!
   onBehalf: String!
@@ -177,6 +184,7 @@ type Morpho_Withdraw {
 
 type Morpho_WithdrawCollateral {
   id: ID!
+  txContext: TxContext!
   market_id: String!
   caller: String!
   onBehalf: String!
@@ -251,4 +259,199 @@ type Authorization {
   authorizer: String!
   authorizee: String!
   isAuthorized: Boolean!
+}
+
+# ============================================
+# VaultV2 State + Events
+# ============================================
+
+type Vault {
+  id: ID!                      # "{chainId}_{vaultAddress}"
+  chainId: Int!
+  vaultAddress: String! @index
+  asset: String!
+  owner: String! @index
+  curator: String @index
+  name: String
+  symbol: String
+  adapterRegistry: String @index
+  receiveAssetsGate: String
+  receiveSharesGate: String
+  sendAssetsGate: String
+  sendSharesGate: String
+  managementFee: BigInt!
+  performanceFee: BigInt!
+  managementFeeRecipient: String
+  performanceFeeRecipient: String
+  maxRate: BigInt!
+  lastUpdate: BigInt!
+
+  # Cumulative movement counters derived from Deposit/Withdraw events only.
+  totalDepositedAssets: BigInt!
+  totalDepositedShares: BigInt!
+  totalWithdrawnAssets: BigInt!
+  totalWithdrawnShares: BigInt!
+
+  allocators: [VaultAllocator!]! @derivedFrom(field: "vault")
+  sentinels: [VaultSentinel!]! @derivedFrom(field: "vault")
+  adapters: [VaultAdapter!]! @derivedFrom(field: "vault")
+  caps: [VaultCap!]! @derivedFrom(field: "vault")
+}
+
+type VaultAllocator @index(fields: ["account", "isAllocator"]) {
+  id: ID!                      # "{chainId}_{vaultAddress}_{account}"
+  vault: Vault!
+  chainId: Int!
+  vaultAddress: String! @index
+  account: String! @index
+  isAllocator: Boolean!
+}
+
+type VaultSentinel @index(fields: ["account", "isSentinel"]) {
+  id: ID!                      # "{chainId}_{vaultAddress}_{account}"
+  vault: Vault!
+  chainId: Int!
+  vaultAddress: String! @index
+  account: String! @index
+  isSentinel: Boolean!
+}
+
+type VaultAdapter
+  @index(fields: ["adapterAddress", "isActive"])
+  @index(fields: ["vaultAddress", "isActive"]) {
+  id: ID!                      # "{chainId}_{vaultAddress}_{adapterAddress}"
+  vault: Vault!
+  chainId: Int!
+  vaultAddress: String! @index
+  adapterAddress: String! @index
+  isActive: Boolean!
+  forceDeallocatePenalty: BigInt!
+}
+
+type VaultCap @index(fields: ["paramId", "vaultAddress"]) {
+  id: ID!                      # "{chainId}_{vaultAddress}_{paramId}"
+  vault: Vault!
+  chainId: Int!
+  vaultAddress: String! @index
+  paramId: String! @index
+  paramIdData: String!
+  absoluteCap: BigInt!
+  relativeCap: BigInt!
+  lastUpdate: BigInt!
+}
+
+type TxContext {
+  id: ID!                      # "{chainId}_{txHash}"
+  chainId: Int!
+  txHash: String!
+  timestamp: BigInt!
+  hasMorphoBlueEvent: Boolean!
+  hasVaultV2Event: Boolean!
+  hasVaultUserDeposit: Boolean!
+  hasVaultUserWithdraw: Boolean!
+  hasVaultRebalance: Boolean!
+  hasVaultConfigChange: Boolean!
+  vaultTxType: String!
+
+  morphoBorrows: [Morpho_Borrow!]! @derivedFrom(field: "txContext")
+  morphoLiquidations: [Morpho_Liquidate!]! @derivedFrom(field: "txContext")
+  morphoRepays: [Morpho_Repay!]! @derivedFrom(field: "txContext")
+  morphoSupplies: [Morpho_Supply!]! @derivedFrom(field: "txContext")
+  morphoSupplyCollaterals: [Morpho_SupplyCollateral!]! @derivedFrom(field: "txContext")
+  morphoWithdraws: [Morpho_Withdraw!]! @derivedFrom(field: "txContext")
+  morphoWithdrawCollaterals: [Morpho_WithdrawCollateral!]! @derivedFrom(field: "txContext")
+  vaultCreations: [VaultV2Factory_CreateVaultV2!]! @derivedFrom(field: "txContext")
+  vaultDeposits: [VaultV2_Deposit!]! @derivedFrom(field: "txContext")
+  vaultAllocations: [VaultV2_Allocate!]! @derivedFrom(field: "txContext")
+  vaultDeallocations: [VaultV2_Deallocate!]! @derivedFrom(field: "txContext")
+  vaultForceDeallocations: [VaultV2_ForceDeallocate!]! @derivedFrom(field: "txContext")
+  vaultWithdrawals: [VaultV2_Withdraw!]! @derivedFrom(field: "txContext")
+}
+
+type VaultV2Factory_CreateVaultV2 {
+  id: ID!
+  txContext: TxContext!
+  vault_id: String!
+  owner: String!
+  asset: String!
+  salt: String!
+  newVaultV2: String!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+}
+
+type VaultV2_Deposit {
+  id: ID!
+  txContext: TxContext!
+  vault_id: String!
+  sender: String!
+  onBehalf: String!
+  assets: BigInt!
+  shares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+  isMonarch: Boolean!
+}
+
+type VaultV2_Allocate {
+  id: ID!
+  txContext: TxContext!
+  vault_id: String!
+  sender: String!
+  adapter: String!
+  assets: BigInt!
+  paramIds: String!
+  change: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+  isMonarch: Boolean!
+}
+
+type VaultV2_Deallocate {
+  id: ID!
+  txContext: TxContext!
+  vault_id: String!
+  sender: String!
+  adapter: String!
+  assets: BigInt!
+  paramIds: String!
+  change: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+  isMonarch: Boolean!
+}
+
+type VaultV2_ForceDeallocate {
+  id: ID!
+  txContext: TxContext!
+  vault_id: String!
+  sender: String!
+  adapter: String!
+  onBehalf: String!
+  assets: BigInt!
+  penaltyAssets: BigInt!
+  paramIds: String!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+  isMonarch: Boolean!
+}
+
+type VaultV2_Withdraw {
+  id: ID!
+  txContext: TxContext!
+  vault_id: String!
+  sender: String!
+  receiver: String!
+  onBehalf: String!
+  assets: BigInt!
+  shares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+  isMonarch: Boolean!
 }

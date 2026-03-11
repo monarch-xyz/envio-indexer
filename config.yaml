@@ -42,6 +42,7 @@ contracts:
     field_selection:
       transaction_fields:
         - hash
+        - input
   - event: SetAuthorization(address indexed caller, address indexed authorizer, address indexed authorized, bool newIsAuthorized)
     field_selection:
       transaction_fields:
@@ -87,6 +88,135 @@ contracts:
       transaction_fields:
         - hash
 
+- name: VaultV2Factory
+  handler: src/EventHandlers.ts
+  events:
+  - event: CreateVaultV2(address indexed owner, address indexed asset, bytes32 salt, address indexed newVaultV2)
+    field_selection:
+      transaction_fields:
+        - hash
+
+- name: VaultV2
+  handler: src/EventHandlers.ts
+  events:
+  - event: AddAdapter(address indexed account)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: Allocate(address indexed sender, address indexed adapter, uint256 assets, bytes32[] ids, int256 change)
+    field_selection:
+      transaction_fields:
+        - hash
+        - input
+  - event: DecreaseAbsoluteCap(address indexed sender, bytes32 indexed id, bytes idData, uint256 newAbsoluteCap)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: DecreaseRelativeCap(address indexed sender, bytes32 indexed id, bytes idData, uint256 newRelativeCap)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: Deallocate(address indexed sender, address indexed adapter, uint256 assets, bytes32[] ids, int256 change)
+    field_selection:
+      transaction_fields:
+        - hash
+        - input
+  - event: Deposit(address indexed sender, address indexed onBehalf, uint256 assets, uint256 shares)
+    field_selection:
+      transaction_fields:
+        - hash
+        - input
+  - event: ForceDeallocate(address indexed sender, address adapter, uint256 assets, address indexed onBehalf, bytes32[] ids, uint256 penaltyAssets)
+    field_selection:
+      transaction_fields:
+        - hash
+        - input
+  - event: IncreaseAbsoluteCap(bytes32 indexed id, bytes idData, uint256 newAbsoluteCap)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: IncreaseRelativeCap(bytes32 indexed id, bytes idData, uint256 newRelativeCap)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: RemoveAdapter(address indexed account)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetAdapterRegistry(address indexed newAdapterRegistry)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetCurator(address indexed newCurator)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetForceDeallocatePenalty(address indexed adapter, uint256 forceDeallocatePenalty)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetIsAllocator(address indexed account, bool newIsAllocator)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetIsSentinel(address indexed account, bool newIsSentinel)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetManagementFee(uint256 newManagementFee)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetManagementFeeRecipient(address indexed newManagementFeeRecipient)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetMaxRate(uint256 newMaxRate)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetName(string newName)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetOwner(address indexed newOwner)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetPerformanceFee(uint256 newPerformanceFee)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetPerformanceFeeRecipient(address indexed newPerformanceFeeRecipient)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetReceiveAssetsGate(address indexed newReceiveAssetsGate)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetReceiveSharesGate(address indexed newReceiveSharesGate)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetSendAssetsGate(address indexed newSendAssetsGate)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetSendSharesGate(address indexed newSendSharesGate)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: SetSymbol(string newSymbol)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: Withdraw(address indexed sender, address indexed receiver, address indexed onBehalf, uint256 assets, uint256 shares)
+    field_selection:
+      transaction_fields:
+        - hash
+        - input
+
 networks:
 - id: 1
   start_block: 0
@@ -97,6 +227,9 @@ networks:
   - name: AdaptiveCurveIrm
     address:
     - 0x870ac11d48b15db9a138cf899d20f13f79ba00bc
+  - name: VaultV2Factory
+    address:
+    - 0xA1D94F746dEfa1928926b84fB2596c06926C0405
 - id: 130
   start_block: 0
   contracts:
@@ -136,6 +269,9 @@ networks:
   - name: AdaptiveCurveIrm
     address:
     - 0x46415998764c29ab2a25cbea6254146d50d22687
+  - name: VaultV2Factory
+    address:
+    - 0x4501125508079A99ebBebCE205DeC9593C2b5857
 - id: 42161
   start_block: 0
   contracts:
@@ -145,5 +281,8 @@ networks:
   - name: AdaptiveCurveIrm
     address:
     - 0x66f30587fb8d4206918deb78eca7d5ebbafd06da
+  - name: VaultV2Factory
+    address:
+    - 0x6b46fa3cc9EBF8aB230aBAc664E37F2966Bf7971
 unordered_multichain_mode: true
 preload_handlers: true

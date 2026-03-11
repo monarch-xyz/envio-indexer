@@ -2,7 +2,26 @@
  * State Tracking - Track protocol state (Market, Position, Authorization)
  * Logic translated from Ponder indexer.
  */
-import type { Market, Position, Authorization } from "generated";
+import type {
+  Market,
+  Position,
+  Authorization,
+  Vault,
+  VaultAllocator,
+  VaultSentinel,
+  VaultAdapter,
+  VaultCap,
+} from "generated";
+import {
+  authorizationId,
+  marketId,
+  normalizeAddress,
+  positionId,
+  vaultAdapterId,
+  vaultCapId,
+  vaultId,
+  vaultRoleId,
+} from "./ids";
 
 type StateContext = {
   Market: {
@@ -17,17 +36,27 @@ type StateContext = {
     get: (id: string) => Promise<Authorization | undefined>;
     set: (entity: Authorization) => void;
   };
+  Vault: {
+    get: (id: string) => Promise<Vault | undefined>;
+    set: (entity: Vault) => void;
+  };
+  VaultAllocator: {
+    get: (id: string) => Promise<VaultAllocator | undefined>;
+    set: (entity: VaultAllocator) => void;
+  };
+  VaultSentinel: {
+    get: (id: string) => Promise<VaultSentinel | undefined>;
+    set: (entity: VaultSentinel) => void;
+  };
+  VaultAdapter: {
+    get: (id: string) => Promise<VaultAdapter | undefined>;
+    set: (entity: VaultAdapter) => void;
+  };
+  VaultCap: {
+    get: (id: string) => Promise<VaultCap | undefined>;
+    set: (entity: VaultCap) => void;
+  };
 };
-
-// ============================================
-// ID Helpers
-// ============================================
-
-const marketId = (chainId: number, id: string) => `${chainId}_${id}`;
-const positionId = (chainId: number, marketId: string, user: string) =>
-  `${chainId}_${marketId}_${user.toLowerCase()}`;
-const authorizationId = (chainId: number, authorizer: string, authorizee: string) =>
-  `${chainId}_${authorizer.toLowerCase()}_${authorizee.toLowerCase()}`;
 
 // ============================================
 // Position Helper - Get or Create
@@ -56,6 +85,104 @@ async function getOrCreatePosition(
     borrowShares: 0n,
     collateral: 0n,
     market_id: marketId(chainId, marketIdStr),
+  };
+}
+
+async function getOrCreateVaultAllocator(
+  context: StateContext,
+  chainId: number,
+  vaultAddress: string,
+  account: string
+): Promise<VaultAllocator> {
+  const id = vaultRoleId(chainId, vaultAddress, account);
+  const existing = await context.VaultAllocator.get(id);
+
+  if (existing) {
+    return existing;
+  }
+
+  return {
+    id,
+    vault_id: vaultId(chainId, vaultAddress),
+    chainId,
+    vaultAddress: normalizeAddress(vaultAddress),
+    account: normalizeAddress(account),
+    isAllocator: false,
+  };
+}
+
+async function getOrCreateVaultSentinel(
+  context: StateContext,
+  chainId: number,
+  vaultAddress: string,
+  account: string
+): Promise<VaultSentinel> {
+  const id = vaultRoleId(chainId, vaultAddress, account);
+  const existing = await context.VaultSentinel.get(id);
+
+  if (existing) {
+    return existing;
+  }
+
+  return {
+    id,
+    vault_id: vaultId(chainId, vaultAddress),
+    chainId,
+    vaultAddress: normalizeAddress(vaultAddress),
+    account: normalizeAddress(account),
+    isSentinel: false,
+  };
+}
+
+async function getOrCreateVaultAdapter(
+  context: StateContext,
+  chainId: number,
+  vaultAddress: string,
+  adapter: string
+): Promise<VaultAdapter> {
+  const id = vaultAdapterId(chainId, vaultAddress, adapter);
+  const existing = await context.VaultAdapter.get(id);
+
+  if (existing) {
+    return existing;
+  }
+
+  return {
+    id,
+    vault_id: vaultId(chainId, vaultAddress),
+    chainId,
+    vaultAddress: normalizeAddress(vaultAddress),
+    adapterAddress: normalizeAddress(adapter),
+    isActive: false,
+    forceDeallocatePenalty: 0n,
+  };
+}
+
+async function getOrCreateVaultCap(
+  context: StateContext,
+  chainId: number,
+  vaultAddress: string,
+  paramId: string,
+  paramIdData: string,
+  timestamp: number
+): Promise<VaultCap> {
+  const id = vaultCapId(chainId, vaultAddress, paramId);
+  const existing = await context.VaultCap.get(id);
+
+  if (existing) {
+    return existing;
+  }
+
+  return {
+    id,
+    vault_id: vaultId(chainId, vaultAddress),
+    chainId,
+    vaultAddress: normalizeAddress(vaultAddress),
+    paramId: paramId.toLowerCase(),
+    paramIdData,
+    absoluteCap: 0n,
+    relativeCap: 0n,
+    lastUpdate: BigInt(timestamp),
   };
 }
 
@@ -436,6 +563,455 @@ export async function updateStateOnSetAuthorization(
   };
 
   context.Authorization.set(authorization);
+}
+
+// ============================================
+// VaultV2 State Updates
+// ============================================
+
+async function updateVault(
+  context: StateContext,
+  chainId: number,
+  vaultAddress: string,
+  timestamp: number,
+  updates: Partial<Vault>
+) {
+  const id = vaultId(chainId, vaultAddress);
+  const vault = await context.Vault.get(id);
+
+  if (!vault) return;
+
+  context.Vault.set({
+    ...vault,
+    ...updates,
+    lastUpdate: BigInt(timestamp),
+  });
+}
+
+export async function updateStateOnCreateVaultV2(
+  event: {
+    chainId: number;
+    block: { timestamp: number };
+    params: { owner: string; asset: string; newVaultV2: string };
+  },
+  context: StateContext
+) {
+  const vault: Vault = {
+    id: vaultId(event.chainId, event.params.newVaultV2),
+    chainId: event.chainId,
+    vaultAddress: normalizeAddress(event.params.newVaultV2),
+    asset: normalizeAddress(event.params.asset),
+    owner: normalizeAddress(event.params.owner),
+    curator: undefined,
+    name: undefined,
+    symbol: undefined,
+    adapterRegistry: undefined,
+    receiveAssetsGate: undefined,
+    receiveSharesGate: undefined,
+    sendAssetsGate: undefined,
+    sendSharesGate: undefined,
+    managementFee: 0n,
+    performanceFee: 0n,
+    managementFeeRecipient: undefined,
+    performanceFeeRecipient: undefined,
+    maxRate: 0n,
+    lastUpdate: BigInt(event.block.timestamp),
+    totalDepositedAssets: 0n,
+    totalDepositedShares: 0n,
+    totalWithdrawnAssets: 0n,
+    totalWithdrawnShares: 0n,
+  };
+
+  context.Vault.set(vault);
+}
+
+export async function updateStateOnVaultDeposit(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { assets: bigint; shares: bigint };
+  },
+  context: StateContext
+) {
+  const vault = await context.Vault.get(vaultId(event.chainId, event.srcAddress));
+  if (!vault) return;
+
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    totalDepositedAssets: vault.totalDepositedAssets + event.params.assets,
+    totalDepositedShares: vault.totalDepositedShares + event.params.shares,
+  });
+}
+
+export async function updateStateOnVaultWithdraw(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { assets: bigint; shares: bigint };
+  },
+  context: StateContext
+) {
+  const vault = await context.Vault.get(vaultId(event.chainId, event.srcAddress));
+  if (!vault) return;
+
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    totalWithdrawnAssets: vault.totalWithdrawnAssets + event.params.assets,
+    totalWithdrawnShares: vault.totalWithdrawnShares + event.params.shares,
+  });
+}
+
+export async function updateStateOnVaultSetName(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newName: string };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    name: event.params.newName,
+  });
+}
+
+export async function updateStateOnVaultSetSymbol(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newSymbol: string };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    symbol: event.params.newSymbol,
+  });
+}
+
+export async function updateStateOnVaultSetOwner(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newOwner: string };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    owner: normalizeAddress(event.params.newOwner),
+  });
+}
+
+export async function updateStateOnVaultSetCurator(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newCurator: string };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    curator: normalizeAddress(event.params.newCurator),
+  });
+}
+
+export async function updateStateOnVaultSetAdapterRegistry(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newAdapterRegistry: string };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    adapterRegistry: normalizeAddress(event.params.newAdapterRegistry),
+  });
+}
+
+export async function updateStateOnVaultSetReceiveAssetsGate(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newReceiveAssetsGate: string };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    receiveAssetsGate: normalizeAddress(event.params.newReceiveAssetsGate),
+  });
+}
+
+export async function updateStateOnVaultSetReceiveSharesGate(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newReceiveSharesGate: string };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    receiveSharesGate: normalizeAddress(event.params.newReceiveSharesGate),
+  });
+}
+
+export async function updateStateOnVaultSetSendAssetsGate(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newSendAssetsGate: string };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    sendAssetsGate: normalizeAddress(event.params.newSendAssetsGate),
+  });
+}
+
+export async function updateStateOnVaultSetSendSharesGate(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newSendSharesGate: string };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    sendSharesGate: normalizeAddress(event.params.newSendSharesGate),
+  });
+}
+
+export async function updateStateOnVaultSetManagementFee(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newManagementFee: bigint };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    managementFee: event.params.newManagementFee,
+  });
+}
+
+export async function updateStateOnVaultSetManagementFeeRecipient(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newManagementFeeRecipient: string };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    managementFeeRecipient: normalizeAddress(event.params.newManagementFeeRecipient),
+  });
+}
+
+export async function updateStateOnVaultSetPerformanceFee(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newPerformanceFee: bigint };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    performanceFee: event.params.newPerformanceFee,
+  });
+}
+
+export async function updateStateOnVaultSetPerformanceFeeRecipient(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newPerformanceFeeRecipient: string };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    performanceFeeRecipient: normalizeAddress(event.params.newPerformanceFeeRecipient),
+  });
+}
+
+export async function updateStateOnVaultSetMaxRate(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { newMaxRate: bigint };
+  },
+  context: StateContext
+) {
+  await updateVault(context, event.chainId, event.srcAddress, event.block.timestamp, {
+    maxRate: event.params.newMaxRate,
+  });
+}
+
+export async function updateStateOnVaultAddAdapter(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    params: { account: string };
+  },
+  context: StateContext
+) {
+  const adapter = await getOrCreateVaultAdapter(
+    context,
+    event.chainId,
+    event.srcAddress,
+    event.params.account
+  );
+
+  context.VaultAdapter.set({
+    ...adapter,
+    isActive: true,
+  });
+}
+
+export async function updateStateOnVaultRemoveAdapter(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    params: { account: string };
+  },
+  context: StateContext
+) {
+  const adapter = await getOrCreateVaultAdapter(
+    context,
+    event.chainId,
+    event.srcAddress,
+    event.params.account
+  );
+
+  context.VaultAdapter.set({
+    ...adapter,
+    isActive: false,
+  });
+}
+
+export async function updateStateOnVaultSetForceDeallocatePenalty(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    params: { adapter: string; forceDeallocatePenalty: bigint };
+  },
+  context: StateContext
+) {
+  const adapter = await getOrCreateVaultAdapter(
+    context,
+    event.chainId,
+    event.srcAddress,
+    event.params.adapter
+  );
+
+  context.VaultAdapter.set({
+    ...adapter,
+    forceDeallocatePenalty: event.params.forceDeallocatePenalty,
+  });
+}
+
+export async function updateStateOnVaultSetIsAllocator(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    params: { account: string; newIsAllocator: boolean };
+  },
+  context: StateContext
+) {
+  const allocator = await getOrCreateVaultAllocator(
+    context,
+    event.chainId,
+    event.srcAddress,
+    event.params.account
+  );
+
+  context.VaultAllocator.set({
+    ...allocator,
+    isAllocator: event.params.newIsAllocator,
+  });
+}
+
+export async function updateStateOnVaultSetIsSentinel(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    params: { account: string; newIsSentinel: boolean };
+  },
+  context: StateContext
+) {
+  const sentinel = await getOrCreateVaultSentinel(
+    context,
+    event.chainId,
+    event.srcAddress,
+    event.params.account
+  );
+
+  context.VaultSentinel.set({
+    ...sentinel,
+    isSentinel: event.params.newIsSentinel,
+  });
+}
+
+export async function updateStateOnVaultSetAbsoluteCap(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { id: string; idData: string; newAbsoluteCap: bigint };
+  },
+  context: StateContext
+) {
+  const cap = await getOrCreateVaultCap(
+    context,
+    event.chainId,
+    event.srcAddress,
+    event.params.id,
+    event.params.idData,
+    event.block.timestamp
+  );
+
+  context.VaultCap.set({
+    ...cap,
+    paramIdData: event.params.idData,
+    absoluteCap: event.params.newAbsoluteCap,
+    lastUpdate: BigInt(event.block.timestamp),
+  });
+}
+
+export async function updateStateOnVaultSetRelativeCap(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    params: { id: string; idData: string; newRelativeCap: bigint };
+  },
+  context: StateContext
+) {
+  const cap = await getOrCreateVaultCap(
+    context,
+    event.chainId,
+    event.srcAddress,
+    event.params.id,
+    event.params.idData,
+    event.block.timestamp
+  );
+
+  context.VaultCap.set({
+    ...cap,
+    paramIdData: event.params.idData,
+    relativeCap: event.params.newRelativeCap,
+    lastUpdate: BigInt(event.block.timestamp),
+  });
 }
 
 // ============================================

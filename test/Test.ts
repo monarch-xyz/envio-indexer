@@ -1,8 +1,5 @@
 import assert from "assert";
-import { 
-  TestHelpers,
-  Morpho_AccrueInterest
-} from "generated";
+import { TestHelpers } from "generated";
 const { MockDb, Morpho } = TestHelpers;
 
 describe("Morpho contract AccrueInterest event tests", () => {
@@ -20,19 +17,21 @@ describe("Morpho contract AccrueInterest event tests", () => {
     });
 
     // Getting the actual entity from the mock database
-    let actualMorphoAccrueInterest = mockDbUpdated.entities.Morpho_AccrueInterest.get(
+    const actualMorphoAccrueInterest = mockDbUpdated.entities.Morpho_AccrueInterest.get(
       `${event.chainId}_${event.block.number}_${event.logIndex}`
     );
 
-    // Creating the expected entity
-    const expectedMorphoAccrueInterest: Morpho_AccrueInterest = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      id: event.params.id,
-      prevBorrowRate: event.params.prevBorrowRate,
-      interest: event.params.interest,
-      feeShares: event.params.feeShares,
-    };
-    // Asserting that the entity in the mock database is the same as the expected entity
-    assert.deepEqual(actualMorphoAccrueInterest, expectedMorphoAccrueInterest, "Actual MorphoAccrueInterest should be the same as the expectedMorphoAccrueInterest");
+    assert(actualMorphoAccrueInterest);
+    assert.equal(
+      actualMorphoAccrueInterest.id,
+      `${event.chainId}_${event.block.number}_${event.logIndex}`
+    );
+    assert.equal(actualMorphoAccrueInterest.market_id, event.params.id);
+    assert.equal(actualMorphoAccrueInterest.prevBorrowRate, event.params.prevBorrowRate);
+    assert.equal(actualMorphoAccrueInterest.interest, event.params.interest);
+    assert.equal(actualMorphoAccrueInterest.feeShares, event.params.feeShares);
+    assert.equal(actualMorphoAccrueInterest.chainId, event.chainId);
+    assert.equal(actualMorphoAccrueInterest.timestamp, BigInt(event.block.timestamp));
+    assert.equal(actualMorphoAccrueInterest.txHash, event.transaction.hash);
   });
 });

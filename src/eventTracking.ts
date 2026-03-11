@@ -21,7 +21,14 @@ import type {
   Morpho_Withdraw,
   Morpho_WithdrawCollateral,
   AdaptiveCurveIrm_BorrowRateUpdate,
+  VaultV2Factory_CreateVaultV2,
+  VaultV2_Allocate,
+  VaultV2_Deallocate,
+  VaultV2_Deposit,
+  VaultV2_ForceDeallocate,
+  VaultV2_Withdraw,
 } from "generated";
+import { eventId, serializeIds, txContextId, vaultId, normalizeAddress } from "./ids";
 
 type EventContext = {
   Morpho_AccrueInterest: { set: (entity: Morpho_AccrueInterest) => void };
@@ -42,11 +49,13 @@ type EventContext = {
   Morpho_Withdraw: { set: (entity: Morpho_Withdraw) => void };
   Morpho_WithdrawCollateral: { set: (entity: Morpho_WithdrawCollateral) => void };
   AdaptiveCurveIrm_BorrowRateUpdate: { set: (entity: AdaptiveCurveIrm_BorrowRateUpdate) => void };
+  VaultV2Factory_CreateVaultV2: { set: (entity: VaultV2Factory_CreateVaultV2) => void };
+  VaultV2_Allocate: { set: (entity: VaultV2_Allocate) => void };
+  VaultV2_Deallocate: { set: (entity: VaultV2_Deallocate) => void };
+  VaultV2_Deposit: { set: (entity: VaultV2_Deposit) => void };
+  VaultV2_ForceDeallocate: { set: (entity: VaultV2_ForceDeallocate) => void };
+  VaultV2_Withdraw: { set: (entity: VaultV2_Withdraw) => void };
 };
-
-// Helper to generate unique event ID
-const eventId = (chainId: number, blockNumber: number, logIndex: number) =>
-  `${chainId}_${blockNumber}_${logIndex}`;
 
 // Helper to detect Monarch frontend transactions (batched rebalance)
 const isMonarchTx = (input: string | undefined): boolean => {
@@ -89,6 +98,7 @@ export function trackBorrow(
 ) {
   const entity: Morpho_Borrow = {
     id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
     market_id: event.params.id,
     caller: event.params.caller,
     onBehalf: event.params.onBehalf,
@@ -233,6 +243,7 @@ export function trackLiquidate(
 ) {
   const entity: Morpho_Liquidate = {
     id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
     market_id: event.params.id,
     caller: event.params.caller,
     borrower: event.params.borrower,
@@ -254,13 +265,14 @@ export function trackRepay(
     chainId: number;
     block: { number: number; timestamp: number };
     logIndex: number;
-    transaction: { hash: string };
+    transaction: { hash: string; input?: string };
     params: { id: string; caller: string; onBehalf: string; assets: bigint; shares: bigint };
   },
   context: EventContext
 ) {
   const entity: Morpho_Repay = {
     id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
     market_id: event.params.id,
     caller: event.params.caller,
     onBehalf: event.params.onBehalf,
@@ -269,6 +281,7 @@ export function trackRepay(
     timestamp: BigInt(event.block.timestamp),
     chainId: event.chainId,
     txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
   };
   context.Morpho_Repay.set(entity);
 }
@@ -369,6 +382,7 @@ export function trackSupply(
 ) {
   const entity: Morpho_Supply = {
     id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
     market_id: event.params.id,
     caller: event.params.caller,
     onBehalf: event.params.onBehalf,
@@ -394,6 +408,7 @@ export function trackSupplyCollateral(
 ) {
   const entity: Morpho_SupplyCollateral = {
     id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
     market_id: event.params.id,
     caller: event.params.caller,
     onBehalf: event.params.onBehalf,
@@ -418,6 +433,7 @@ export function trackWithdraw(
 ) {
   const entity: Morpho_Withdraw = {
     id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
     market_id: event.params.id,
     caller: event.params.caller,
     onBehalf: event.params.onBehalf,
@@ -444,6 +460,7 @@ export function trackWithdrawCollateral(
 ) {
   const entity: Morpho_WithdrawCollateral = {
     id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
     market_id: event.params.id,
     caller: event.params.caller,
     onBehalf: event.params.onBehalf,
@@ -481,4 +498,182 @@ export function trackBorrowRateUpdate(
     txHash: event.transaction.hash,
   };
   context.AdaptiveCurveIrm_BorrowRateUpdate.set(entity);
+}
+
+export function trackCreateVaultV2(
+  event: {
+    chainId: number;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string };
+    params: { owner: string; asset: string; salt: string; newVaultV2: string };
+  },
+  context: EventContext
+) {
+  const entity: VaultV2Factory_CreateVaultV2 = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
+    vault_id: vaultId(event.chainId, event.params.newVaultV2),
+    owner: normalizeAddress(event.params.owner),
+    asset: normalizeAddress(event.params.asset),
+    salt: event.params.salt,
+    newVaultV2: normalizeAddress(event.params.newVaultV2),
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+  };
+  context.VaultV2Factory_CreateVaultV2.set(entity);
+}
+
+export function trackVaultDeposit(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string; input?: string };
+    params: { sender: string; onBehalf: string; assets: bigint; shares: bigint };
+  },
+  context: EventContext
+) {
+  const entity: VaultV2_Deposit = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
+    vault_id: vaultId(event.chainId, event.srcAddress),
+    sender: normalizeAddress(event.params.sender),
+    onBehalf: normalizeAddress(event.params.onBehalf),
+    assets: event.params.assets,
+    shares: event.params.shares,
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
+  };
+  context.VaultV2_Deposit.set(entity);
+}
+
+export function trackVaultAllocate(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string; input?: string };
+    params: { sender: string; adapter: string; assets: bigint; ids: readonly string[]; change: bigint };
+  },
+  context: EventContext
+) {
+  const entity: VaultV2_Allocate = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
+    vault_id: vaultId(event.chainId, event.srcAddress),
+    sender: normalizeAddress(event.params.sender),
+    adapter: normalizeAddress(event.params.adapter),
+    assets: event.params.assets,
+    paramIds: serializeIds(event.params.ids),
+    change: event.params.change,
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
+  };
+  context.VaultV2_Allocate.set(entity);
+}
+
+export function trackVaultDeallocate(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string; input?: string };
+    params: { sender: string; adapter: string; assets: bigint; ids: readonly string[]; change: bigint };
+  },
+  context: EventContext
+) {
+  const entity: VaultV2_Deallocate = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
+    vault_id: vaultId(event.chainId, event.srcAddress),
+    sender: normalizeAddress(event.params.sender),
+    adapter: normalizeAddress(event.params.adapter),
+    assets: event.params.assets,
+    paramIds: serializeIds(event.params.ids),
+    change: event.params.change,
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
+  };
+  context.VaultV2_Deallocate.set(entity);
+}
+
+export function trackVaultWithdraw(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string; input?: string };
+    params: {
+      sender: string;
+      receiver: string;
+      onBehalf: string;
+      assets: bigint;
+      shares: bigint;
+    };
+  },
+  context: EventContext
+) {
+  const entity: VaultV2_Withdraw = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
+    vault_id: vaultId(event.chainId, event.srcAddress),
+    sender: normalizeAddress(event.params.sender),
+    receiver: normalizeAddress(event.params.receiver),
+    onBehalf: normalizeAddress(event.params.onBehalf),
+    assets: event.params.assets,
+    shares: event.params.shares,
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
+  };
+  context.VaultV2_Withdraw.set(entity);
+}
+
+export function trackVaultForceDeallocate(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string; input?: string };
+    params: {
+      sender: string;
+      adapter: string;
+      assets: bigint;
+      onBehalf: string;
+      ids: readonly string[];
+      penaltyAssets: bigint;
+    };
+  },
+  context: EventContext
+) {
+  const entity: VaultV2_ForceDeallocate = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
+    vault_id: vaultId(event.chainId, event.srcAddress),
+    sender: normalizeAddress(event.params.sender),
+    adapter: normalizeAddress(event.params.adapter),
+    onBehalf: normalizeAddress(event.params.onBehalf),
+    assets: event.params.assets,
+    penaltyAssets: event.params.penaltyAssets,
+    paramIds: serializeIds(event.params.ids),
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
+  };
+  context.VaultV2_ForceDeallocate.set(entity);
 }
