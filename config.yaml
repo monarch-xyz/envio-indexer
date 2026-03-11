@@ -239,6 +239,9 @@ networks:
   - name: AdaptiveCurveIrm
     address:
     - 0x9a6061d51743b31d2c3be75d83781fa423f53f0e
+  - name: VaultV2Factory
+    address:
+    - 0xC9b34c108014B44e5a189A830e7e04c56704a0c9
 - id: 137
   start_block: 0
   contracts:
@@ -248,18 +251,27 @@ networks:
   - name: AdaptiveCurveIrm
     address:
     - 0xe675a2161d4a6e2de2eed70ac98eebf257fbf0b0
+  - name: VaultV2Factory
+    address:
+    - 0xC11a53eE9B1eCc7a068D8e40F8F17926584F97Cf
 - id: 143
   start_block: 0
   contracts:
   - name: Morpho
     address:
     - 0xD5D960E8C380B724a48AC59E2DfF1b2CB4a1eAee
+  - name: VaultV2Factory
+    address:
+    - 0x8B2F922162FBb60A6a072cC784A2E4168fB0bb0c
 - id: 999
   start_block: 0
   contracts:
   - name: Morpho
     address:
     - 0x68e37dE8d93d3496ae143F2E900490f6280C57cD
+  - name: VaultV2Factory
+    address:
+    - 0xD7217E5687FF1071356C780b5fe4803D9D967da7
 - id: 8453
   start_block: 0
   contracts:
