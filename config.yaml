@@ -267,6 +267,9 @@ networks:
     address:
     - 0xC9b34c108014B44e5a189A830e7e04c56704a0c9
   - name: VaultV2
+  - name: MorphoMarketV1AdapterV2Factory
+    address:
+    - 0x9a13bdA35F98811fbAcf097966b2C838f3F9c58C
 - id: 137
   start_block: 0
   contracts:
@@ -280,6 +283,9 @@ networks:
     address:
     - 0xC11a53eE9B1eCc7a068D8e40F8F17926584F97Cf
   - name: VaultV2
+  - name: MorphoMarketV1AdapterV2Factory
+    address:
+    - 0xc0006f52B38625C283dd2f972dD9B779A5851Dd0
 - id: 143
   start_block: 0
   contracts:
@@ -290,6 +296,9 @@ networks:
     address:
     - 0x8B2F922162FBb60A6a072cC784A2E4168fB0bb0c
   - name: VaultV2
+  - name: MorphoMarketV1AdapterV2Factory
+    address:
+    - 0xa00666E86C7e2FA8d2c78d9481E687e098340180
 - id: 999
   start_block: 0
   contracts:
@@ -300,6 +309,9 @@ networks:
     address:
     - 0xD7217E5687FF1071356C780b5fe4803D9D967da7
   - name: VaultV2
+  - name: MorphoMarketV1AdapterV2Factory
+    address:
+    - 0xaEff6Ef4B7bbfbAadB18b634A8F11392CBeB72Be
 - id: 8453
   start_block: 0
   contracts:
@@ -316,6 +328,9 @@ networks:
   - name: MorphoMarketV1AdapterFactory
     address:
     - 0x133baC94306B99f6dAD85c381a5be851d8DD717c
+  - name: MorphoMarketV1AdapterV2Factory
+    address:
+    - 0x9a1B378C43BA535cDB89934230F0D3890c51C0EB
 - id: 42161
   start_block: 0
   contracts:
@@ -329,5 +344,8 @@ networks:
     address:
     - 0x6b46fa3cc9EBF8aB230aBAc664E37F2966Bf7971
   - name: VaultV2
+  - name: MorphoMarketV1AdapterV2Factory
+    address:
+    - 0xeF84b1ecEbe43283ec5AF95D7a5c4D7dE0a9859b
 unordered_multichain_mode: true
 preload_handlers: true
