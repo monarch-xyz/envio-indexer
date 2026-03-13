@@ -22,6 +22,9 @@ export const vaultRoleId = (chainId: number, vaultAddress: string, account: stri
 export const vaultAdapterId = (chainId: number, vaultAddress: string, adapter: string) =>
   `${vaultId(chainId, vaultAddress)}_${normalizeAddress(adapter)}`;
 
+export const adapterId = (chainId: number, address: string) =>
+  `${chainId}_${normalizeAddress(address)}`;
+
 export const vaultCapId = (chainId: number, vaultAddress: string, paramId: string) =>
   `${vaultId(chainId, vaultAddress)}_${paramId.toLowerCase()}`;
 

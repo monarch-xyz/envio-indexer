@@ -217,6 +217,26 @@ contracts:
         - hash
         - input
 
+- name: MorphoMarketV1AdapterFactory
+  handler: src/EventHandlers.ts
+  events:
+  - event: CreateMorphoMarketV1Adapter(address indexed parentVault, address indexed morpho, address indexed morphoMarketV1Adapter)
+    field_selection:
+      transaction_fields:
+        - hash
+
+- name: MorphoMarketV1AdapterV2Factory
+  handler: src/EventHandlers.ts
+  events:
+  - event: CreateMorphoMarketV1AdapterV2Factory(address indexed morpho, address indexed adaptiveCurveIrm)
+    field_selection:
+      transaction_fields:
+        - hash
+  - event: CreateMorphoMarketV1AdapterV2(address indexed parentVault, address indexed morphoMarketV1AdapterV2)
+    field_selection:
+      transaction_fields:
+        - hash
+
 networks:
 - id: 1
   start_block: 0
@@ -231,6 +251,9 @@ networks:
     address:
     - 0xA1D94F746dEfa1928926b84fB2596c06926C0405
   - name: VaultV2
+  - name: MorphoMarketV1AdapterV2Factory
+    address:
+    - 0x32BB1c0D48D8b1B3363e86eeB9A0300BAd61ccc1
 - id: 130
   start_block: 0
   contracts:
@@ -290,6 +313,9 @@ networks:
     address:
     - 0x4501125508079A99ebBebCE205DeC9593C2b5857
   - name: VaultV2
+  - name: MorphoMarketV1AdapterFactory
+    address:
+    - 0x133baC94306B99f6dAD85c381a5be851d8DD717c
 - id: 42161
   start_block: 0
   contracts:

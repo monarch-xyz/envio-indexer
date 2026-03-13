@@ -2,7 +2,14 @@
  * Morpho Event Handlers
  * Combines event tracking (raw events) and state tracking (Market, Position, Authorization)
  */
-import { Morpho, AdaptiveCurveIrm, VaultV2Factory, VaultV2 } from "generated";
+import {
+  Morpho,
+  AdaptiveCurveIrm,
+  VaultV2Factory,
+  VaultV2,
+  MorphoMarketV1AdapterFactory,
+  MorphoMarketV1AdapterV2Factory,
+} from "generated";
 
 // Event tracking - raw event entity storage
 import {
@@ -25,7 +32,10 @@ import {
   trackWithdrawCollateral,
   trackBorrowRateUpdate,
   trackCreateVaultV2,
+  trackCreateMorphoMarketV1Adapter,
   trackVaultAllocate,
+  trackCreateMorphoMarketV1AdapterV2,
+  trackCreateMorphoMarketV1AdapterV2Factory,
   trackVaultDeallocate,
   trackVaultDeposit,
   trackVaultForceDeallocate,
@@ -47,6 +57,8 @@ import {
   updateStateOnSetAuthorization,
   updateStateOnBorrowRateUpdate,
   updateStateOnCreateVaultV2,
+  updateStateOnCreateMorphoMarketV1Adapter,
+  updateStateOnCreateMorphoMarketV1AdapterV2,
   updateStateOnVaultAddAdapter,
   updateStateOnVaultDeposit,
   updateStateOnVaultRemoveAdapter,
@@ -206,6 +218,28 @@ AdaptiveCurveIrm.BorrowRateUpdate.handler(async ({ event, context }) => {
   // Update Market.rateAtTarget
   await updateStateOnBorrowRateUpdate(event, context);
 });
+
+// ============================================
+// Adapter Factory Events
+// ============================================
+
+MorphoMarketV1AdapterFactory.CreateMorphoMarketV1Adapter.handler(async ({ event, context }) => {
+  trackCreateMorphoMarketV1Adapter(event, context);
+  await updateStateOnCreateMorphoMarketV1Adapter(event, context);
+});
+
+MorphoMarketV1AdapterV2Factory.CreateMorphoMarketV1AdapterV2Factory.handler(
+  async ({ event, context }) => {
+    trackCreateMorphoMarketV1AdapterV2Factory(event, context);
+  }
+);
+
+MorphoMarketV1AdapterV2Factory.CreateMorphoMarketV1AdapterV2.handler(
+  async ({ event, context }) => {
+    trackCreateMorphoMarketV1AdapterV2(event, context);
+    await updateStateOnCreateMorphoMarketV1AdapterV2(event, context);
+  }
+);
 
 // ============================================
 // VaultV2 Events

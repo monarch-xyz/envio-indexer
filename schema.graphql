@@ -295,6 +295,7 @@ type Vault {
   allocators: [VaultAllocator!]! @derivedFrom(field: "vault")
   sentinels: [VaultSentinel!]! @derivedFrom(field: "vault")
   adapters: [VaultAdapter!]! @derivedFrom(field: "vault")
+  knownAdapters: [Adapter!]! @derivedFrom(field: "vault")
   caps: [VaultCap!]! @derivedFrom(field: "vault")
 }
 
@@ -338,6 +339,19 @@ type VaultCap @index(fields: ["paramId", "vaultAddress"]) {
   absoluteCap: BigInt!
   relativeCap: BigInt!
   lastUpdate: BigInt!
+}
+
+type Adapter @index(fields: ["vaultAddress", "adapterType"]) {
+  id: ID!                      # "{chainId}_{adapterAddress}"
+  vault: Vault!
+  chainId: Int!
+  vaultAddress: String! @index
+  adapterAddress: String! @index
+  adapterType: String! @index
+  factoryAddress: String! @index
+  morphoAddress: String @index
+  createdAt: BigInt!
+  txHash: String!
 }
 
 type TxContext {
@@ -454,4 +468,39 @@ type VaultV2_Withdraw {
   chainId: Int!
   txHash: String!
   isMonarch: Boolean!
+}
+
+type MorphoMarketV1AdapterFactory_CreateAdapter {
+  id: ID!
+  adapter: Adapter!
+  vault: Vault!
+  parentVault: String!
+  morpho: String!
+  morphoMarketV1Adapter: String!
+  factoryAddress: String!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+}
+
+type MorphoMarketV1AdapterV2Factory_CreateFactory {
+  id: ID!
+  factoryAddress: String!
+  morpho: String!
+  adaptiveCurveIrm: String!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+}
+
+type MorphoMarketV1AdapterV2Factory_CreateAdapter {
+  id: ID!
+  adapter: Adapter!
+  vault: Vault!
+  parentVault: String!
+  morphoMarketV1AdapterV2: String!
+  factoryAddress: String!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
 }

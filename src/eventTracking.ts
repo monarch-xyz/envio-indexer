@@ -27,8 +27,11 @@ import type {
   VaultV2_Deposit,
   VaultV2_ForceDeallocate,
   VaultV2_Withdraw,
+  MorphoMarketV1AdapterFactory_CreateAdapter,
+  MorphoMarketV1AdapterV2Factory_CreateFactory,
+  MorphoMarketV1AdapterV2Factory_CreateAdapter,
 } from "generated";
-import { eventId, serializeIds, txContextId, vaultId, normalizeAddress } from "./ids";
+import { adapterId, eventId, serializeIds, txContextId, vaultId, normalizeAddress } from "./ids";
 
 type EventContext = {
   Morpho_AccrueInterest: { set: (entity: Morpho_AccrueInterest) => void };
@@ -55,6 +58,15 @@ type EventContext = {
   VaultV2_Deposit: { set: (entity: VaultV2_Deposit) => void };
   VaultV2_ForceDeallocate: { set: (entity: VaultV2_ForceDeallocate) => void };
   VaultV2_Withdraw: { set: (entity: VaultV2_Withdraw) => void };
+  MorphoMarketV1AdapterFactory_CreateAdapter: {
+    set: (entity: MorphoMarketV1AdapterFactory_CreateAdapter) => void;
+  };
+  MorphoMarketV1AdapterV2Factory_CreateFactory: {
+    set: (entity: MorphoMarketV1AdapterV2Factory_CreateFactory) => void;
+  };
+  MorphoMarketV1AdapterV2Factory_CreateAdapter: {
+    set: (entity: MorphoMarketV1AdapterV2Factory_CreateAdapter) => void;
+  };
 };
 
 // Helper to detect Monarch frontend transactions (batched rebalance)
@@ -676,4 +688,78 @@ export function trackVaultForceDeallocate(
     isMonarch: isMonarchTx(event.transaction.input),
   };
   context.VaultV2_ForceDeallocate.set(entity);
+}
+
+export function trackCreateMorphoMarketV1Adapter(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string };
+    params: { parentVault: string; morpho: string; morphoMarketV1Adapter: string };
+  },
+  context: EventContext
+) {
+  const entity: MorphoMarketV1AdapterFactory_CreateAdapter = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    adapter_id: adapterId(event.chainId, event.params.morphoMarketV1Adapter),
+    vault_id: vaultId(event.chainId, event.params.parentVault),
+    parentVault: normalizeAddress(event.params.parentVault),
+    morpho: normalizeAddress(event.params.morpho),
+    morphoMarketV1Adapter: normalizeAddress(event.params.morphoMarketV1Adapter),
+    factoryAddress: normalizeAddress(event.srcAddress),
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+  };
+  context.MorphoMarketV1AdapterFactory_CreateAdapter.set(entity);
+}
+
+export function trackCreateMorphoMarketV1AdapterV2Factory(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string };
+    params: { morpho: string; adaptiveCurveIrm: string };
+  },
+  context: EventContext
+) {
+  const entity: MorphoMarketV1AdapterV2Factory_CreateFactory = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    factoryAddress: normalizeAddress(event.srcAddress),
+    morpho: normalizeAddress(event.params.morpho),
+    adaptiveCurveIrm: normalizeAddress(event.params.adaptiveCurveIrm),
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+  };
+  context.MorphoMarketV1AdapterV2Factory_CreateFactory.set(entity);
+}
+
+export function trackCreateMorphoMarketV1AdapterV2(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string };
+    params: { parentVault: string; morphoMarketV1AdapterV2: string };
+  },
+  context: EventContext
+) {
+  const entity: MorphoMarketV1AdapterV2Factory_CreateAdapter = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    adapter_id: adapterId(event.chainId, event.params.morphoMarketV1AdapterV2),
+    vault_id: vaultId(event.chainId, event.params.parentVault),
+    parentVault: normalizeAddress(event.params.parentVault),
+    morphoMarketV1AdapterV2: normalizeAddress(event.params.morphoMarketV1AdapterV2),
+    factoryAddress: normalizeAddress(event.srcAddress),
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+  };
+  context.MorphoMarketV1AdapterV2Factory_CreateAdapter.set(entity);
 }

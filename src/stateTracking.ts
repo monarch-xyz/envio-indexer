@@ -6,6 +6,7 @@ import type {
   Market,
   Position,
   Authorization,
+  Adapter,
   Vault,
   VaultAllocator,
   VaultSentinel,
@@ -13,6 +14,7 @@ import type {
   VaultCap,
 } from "generated";
 import {
+  adapterId,
   authorizationId,
   marketId,
   normalizeAddress,
@@ -35,6 +37,10 @@ type StateContext = {
   Authorization: {
     get: (id: string) => Promise<Authorization | undefined>;
     set: (entity: Authorization) => void;
+  };
+  Adapter: {
+    get: (id: string) => Promise<Adapter | undefined>;
+    set: (entity: Adapter) => void;
   };
   Vault: {
     get: (id: string) => Promise<Vault | undefined>;
@@ -184,6 +190,40 @@ async function getOrCreateVaultCap(
     relativeCap: 0n,
     lastUpdate: BigInt(timestamp),
   };
+}
+
+type KnownAdapterType = "MorphoMarketV1Adapter" | "MorphoMarketV1AdapterV2";
+
+async function upsertKnownAdapter(
+  context: StateContext,
+  params: {
+    chainId: number;
+    vaultAddress: string;
+    adapterAddress: string;
+    adapterType: KnownAdapterType;
+    factoryAddress: string;
+    timestamp: number;
+    txHash: string;
+    morphoAddress?: string;
+  }
+) {
+  const id = adapterId(params.chainId, params.adapterAddress);
+  const existing = await context.Adapter.get(id);
+
+  context.Adapter.set({
+    id,
+    vault_id: vaultId(params.chainId, params.vaultAddress),
+    chainId: params.chainId,
+    vaultAddress: normalizeAddress(params.vaultAddress),
+    adapterAddress: normalizeAddress(params.adapterAddress),
+    adapterType: params.adapterType,
+    factoryAddress: normalizeAddress(params.factoryAddress),
+    morphoAddress: params.morphoAddress
+      ? normalizeAddress(params.morphoAddress)
+      : existing?.morphoAddress,
+    createdAt: existing?.createdAt ?? BigInt(params.timestamp),
+    txHash: existing?.txHash ?? params.txHash,
+  });
 }
 
 // ============================================
@@ -623,6 +663,49 @@ export async function updateStateOnCreateVaultV2(
   };
 
   context.Vault.set(vault);
+}
+
+export async function updateStateOnCreateMorphoMarketV1Adapter(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    transaction: { hash: string };
+    params: { parentVault: string; morpho: string; morphoMarketV1Adapter: string };
+  },
+  context: StateContext
+) {
+  await upsertKnownAdapter(context, {
+    chainId: event.chainId,
+    vaultAddress: event.params.parentVault,
+    adapterAddress: event.params.morphoMarketV1Adapter,
+    adapterType: "MorphoMarketV1Adapter",
+    factoryAddress: event.srcAddress,
+    timestamp: event.block.timestamp,
+    txHash: event.transaction.hash,
+    morphoAddress: event.params.morpho,
+  });
+}
+
+export async function updateStateOnCreateMorphoMarketV1AdapterV2(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    transaction: { hash: string };
+    params: { parentVault: string; morphoMarketV1AdapterV2: string };
+  },
+  context: StateContext
+) {
+  await upsertKnownAdapter(context, {
+    chainId: event.chainId,
+    vaultAddress: event.params.parentVault,
+    adapterAddress: event.params.morphoMarketV1AdapterV2,
+    adapterType: "MorphoMarketV1AdapterV2",
+    factoryAddress: event.srcAddress,
+    timestamp: event.block.timestamp,
+    txHash: event.transaction.hash,
+  });
 }
 
 export async function updateStateOnVaultDeposit(
