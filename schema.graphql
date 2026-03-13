@@ -231,6 +231,7 @@ type Market {
   totalSupplyShares: BigInt!
   totalBorrowAssets: BigInt!
   totalBorrowShares: BigInt!
+  collateralAssets: BigInt!
   lastUpdate: BigInt!
   fee: BigInt!
 

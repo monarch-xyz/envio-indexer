@@ -259,6 +259,7 @@ export async function updateStateOnCreateMarket(
     totalSupplyShares: 0n,
     totalBorrowAssets: 0n,
     totalBorrowShares: 0n,
+    collateralAssets: 0n,
     lastUpdate: BigInt(event.block.timestamp),
     fee: 0n,
     // AdaptiveCurveIrm state
@@ -391,7 +392,7 @@ export async function updateStateOnWithdraw(
 }
 
 /**
- * SupplyCollateral - Updates Market.lastUpdate + Position collateral
+ * SupplyCollateral - Updates Market.collateralAssets + Position collateral
  */
 export async function updateStateOnSupplyCollateral(
   event: {
@@ -408,6 +409,7 @@ export async function updateStateOnSupplyCollateral(
   if (market) {
     context.Market.set({
       ...market,
+      collateralAssets: market.collateralAssets + event.params.assets,
       lastUpdate: BigInt(event.block.timestamp),
     });
   }
@@ -426,7 +428,7 @@ export async function updateStateOnSupplyCollateral(
 }
 
 /**
- * WithdrawCollateral - Updates Market.lastUpdate + Position collateral
+ * WithdrawCollateral - Updates Market.collateralAssets + Position collateral
  */
 export async function updateStateOnWithdrawCollateral(
   event: {
@@ -443,6 +445,7 @@ export async function updateStateOnWithdrawCollateral(
   if (market) {
     context.Market.set({
       ...market,
+      collateralAssets: market.collateralAssets - event.params.assets,
       lastUpdate: BigInt(event.block.timestamp),
     });
   }
@@ -564,6 +567,7 @@ export async function updateStateOnLiquidate(
       totalSupplyShares: market.totalSupplyShares - event.params.badDebtShares,
       totalBorrowAssets: market.totalBorrowAssets - event.params.repaidAssets,
       totalBorrowShares: market.totalBorrowShares - event.params.repaidShares,
+      collateralAssets: market.collateralAssets - event.params.seizedAssets,
       lastUpdate: BigInt(event.block.timestamp),
     });
   }
