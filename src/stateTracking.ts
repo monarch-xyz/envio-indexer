@@ -259,6 +259,8 @@ export async function updateStateOnCreateMarket(
     totalSupplyShares: 0n,
     totalBorrowAssets: 0n,
     totalBorrowShares: 0n,
+    accruedBadDebtAssets: 0n,
+    accruedBadDebtShares: 0n,
     collateralAssets: 0n,
     lastUpdate: BigInt(event.block.timestamp),
     fee: 0n,
@@ -567,6 +569,8 @@ export async function updateStateOnLiquidate(
       totalSupplyShares: market.totalSupplyShares - event.params.badDebtShares,
       totalBorrowAssets: market.totalBorrowAssets - event.params.repaidAssets,
       totalBorrowShares: market.totalBorrowShares - event.params.repaidShares,
+      accruedBadDebtAssets: market.accruedBadDebtAssets + event.params.badDebtAssets,
+      accruedBadDebtShares: market.accruedBadDebtShares + event.params.badDebtShares,
       collateralAssets: market.collateralAssets - event.params.seizedAssets,
       lastUpdate: BigInt(event.block.timestamp),
     });

@@ -231,6 +231,8 @@ type Market {
   totalSupplyShares: BigInt!
   totalBorrowAssets: BigInt!
   totalBorrowShares: BigInt!
+  accruedBadDebtAssets: BigInt! # cumulative bad debt realized for this market
+  accruedBadDebtShares: BigInt! # cumulative bad debt shares realized for this market
   collateralAssets: BigInt!
   lastUpdate: BigInt!
   fee: BigInt!
