@@ -7,6 +7,7 @@ import type {
   Position,
   Authorization,
   Adapter,
+  LegacyVault,
   Vault,
   VaultAllocator,
   VaultSentinel,
@@ -24,6 +25,7 @@ import {
   vaultId,
   vaultRoleId,
 } from "./ids";
+import { resolveLegacyVaultVersion } from "./legacyVaults";
 
 type StateContext = {
   Market: {
@@ -41,6 +43,10 @@ type StateContext = {
   Adapter: {
     get: (id: string) => Promise<Adapter | undefined>;
     set: (entity: Adapter) => void;
+  };
+  LegacyVault: {
+    get: (id: string) => Promise<LegacyVault | undefined>;
+    set: (entity: LegacyVault) => void;
   };
   Vault: {
     get: (id: string) => Promise<Vault | undefined>;
@@ -671,6 +677,43 @@ export async function updateStateOnCreateVaultV2(
   };
 
   context.Vault.set(vault);
+}
+
+export async function updateStateOnCreateLegacyVault(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { timestamp: number };
+    transaction: { hash: string };
+    params: {
+      metaMorpho: string;
+      caller: string;
+      initialOwner: string;
+      initialTimelock: bigint;
+      asset: string;
+      name: string;
+      symbol: string;
+    };
+  },
+  context: StateContext
+) {
+  const vault: LegacyVault = {
+    id: vaultId(event.chainId, event.params.metaMorpho),
+    chainId: event.chainId,
+    vaultAddress: normalizeAddress(event.params.metaMorpho),
+    vaultVersion: resolveLegacyVaultVersion(event.chainId, event.srcAddress),
+    factoryAddress: normalizeAddress(event.srcAddress),
+    creator: normalizeAddress(event.params.caller),
+    owner: normalizeAddress(event.params.initialOwner),
+    initialTimelock: event.params.initialTimelock,
+    asset: normalizeAddress(event.params.asset),
+    name: event.params.name,
+    symbol: event.params.symbol,
+    createdAt: BigInt(event.block.timestamp),
+    txHash: event.transaction.hash,
+  };
+
+  context.LegacyVault.set(vault);
 }
 
 export async function updateStateOnCreateMorphoMarketV1Adapter(

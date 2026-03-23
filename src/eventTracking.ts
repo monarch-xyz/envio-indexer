@@ -27,11 +27,17 @@ import type {
   VaultV2_Deposit,
   VaultV2_ForceDeallocate,
   VaultV2_Withdraw,
+  MetaMorphoFactory_CreateMetaMorpho,
+  MetaMorphoVault_Deposit,
+  MetaMorphoVault_ReallocateSupply,
+  MetaMorphoVault_ReallocateWithdraw,
+  MetaMorphoVault_Withdraw,
   MorphoMarketV1AdapterFactory_CreateAdapter,
   MorphoMarketV1AdapterV2Factory_CreateFactory,
   MorphoMarketV1AdapterV2Factory_CreateAdapter,
 } from "generated";
 import { adapterId, eventId, serializeIds, txContextId, vaultId, normalizeAddress } from "./ids";
+import { resolveLegacyVaultVersion } from "./legacyVaults";
 
 type EventContext = {
   Morpho_AccrueInterest: { set: (entity: Morpho_AccrueInterest) => void };
@@ -58,6 +64,15 @@ type EventContext = {
   VaultV2_Deposit: { set: (entity: VaultV2_Deposit) => void };
   VaultV2_ForceDeallocate: { set: (entity: VaultV2_ForceDeallocate) => void };
   VaultV2_Withdraw: { set: (entity: VaultV2_Withdraw) => void };
+  MetaMorphoFactory_CreateMetaMorpho: {
+    set: (entity: MetaMorphoFactory_CreateMetaMorpho) => void;
+  };
+  MetaMorphoVault_Deposit: { set: (entity: MetaMorphoVault_Deposit) => void };
+  MetaMorphoVault_ReallocateSupply: { set: (entity: MetaMorphoVault_ReallocateSupply) => void };
+  MetaMorphoVault_ReallocateWithdraw: {
+    set: (entity: MetaMorphoVault_ReallocateWithdraw) => void;
+  };
+  MetaMorphoVault_Withdraw: { set: (entity: MetaMorphoVault_Withdraw) => void };
   MorphoMarketV1AdapterFactory_CreateAdapter: {
     set: (entity: MorphoMarketV1AdapterFactory_CreateAdapter) => void;
   };
@@ -688,6 +703,166 @@ export function trackVaultForceDeallocate(
     isMonarch: isMonarchTx(event.transaction.input),
   };
   context.VaultV2_ForceDeallocate.set(entity);
+}
+
+export function trackCreateLegacyVault(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string };
+    params: {
+      metaMorpho: string;
+      caller: string;
+      initialOwner: string;
+      initialTimelock: bigint;
+      asset: string;
+      name: string;
+      symbol: string;
+      salt: string;
+    };
+  },
+  context: EventContext
+) {
+  const entity: MetaMorphoFactory_CreateMetaMorpho = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
+    legacyVault_id: vaultId(event.chainId, event.params.metaMorpho),
+    vaultAddress: normalizeAddress(event.params.metaMorpho),
+    vaultVersion: resolveLegacyVaultVersion(event.chainId, event.srcAddress),
+    factoryAddress: normalizeAddress(event.srcAddress),
+    caller: normalizeAddress(event.params.caller),
+    initialOwner: normalizeAddress(event.params.initialOwner),
+    initialTimelock: event.params.initialTimelock,
+    asset: normalizeAddress(event.params.asset),
+    name: event.params.name,
+    symbol: event.params.symbol,
+    salt: event.params.salt,
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+  };
+  context.MetaMorphoFactory_CreateMetaMorpho.set(entity);
+}
+
+export function trackLegacyVaultDeposit(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string; input?: string };
+    params: { sender: string; owner: string; assets: bigint; shares: bigint };
+  },
+  context: EventContext
+) {
+  const entity: MetaMorphoVault_Deposit = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
+    legacyVault_id: vaultId(event.chainId, event.srcAddress),
+    vaultAddress: normalizeAddress(event.srcAddress),
+    sender: normalizeAddress(event.params.sender),
+    owner: normalizeAddress(event.params.owner),
+    assets: event.params.assets,
+    shares: event.params.shares,
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
+  };
+  context.MetaMorphoVault_Deposit.set(entity);
+}
+
+export function trackLegacyVaultWithdraw(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string; input?: string };
+    params: {
+      sender: string;
+      receiver: string;
+      owner: string;
+      assets: bigint;
+      shares: bigint;
+    };
+  },
+  context: EventContext
+) {
+  const entity: MetaMorphoVault_Withdraw = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
+    legacyVault_id: vaultId(event.chainId, event.srcAddress),
+    vaultAddress: normalizeAddress(event.srcAddress),
+    sender: normalizeAddress(event.params.sender),
+    receiver: normalizeAddress(event.params.receiver),
+    owner: normalizeAddress(event.params.owner),
+    assets: event.params.assets,
+    shares: event.params.shares,
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
+  };
+  context.MetaMorphoVault_Withdraw.set(entity);
+}
+
+export function trackLegacyVaultReallocateSupply(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string; input?: string };
+    params: { caller: string; id: string; suppliedAssets: bigint; suppliedShares: bigint };
+  },
+  context: EventContext
+) {
+  const entity: MetaMorphoVault_ReallocateSupply = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
+    legacyVault_id: vaultId(event.chainId, event.srcAddress),
+    vaultAddress: normalizeAddress(event.srcAddress),
+    caller: normalizeAddress(event.params.caller),
+    market_id: event.params.id,
+    suppliedAssets: event.params.suppliedAssets,
+    suppliedShares: event.params.suppliedShares,
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
+  };
+  context.MetaMorphoVault_ReallocateSupply.set(entity);
+}
+
+export function trackLegacyVaultReallocateWithdraw(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string; input?: string };
+    params: { caller: string; id: string; withdrawnAssets: bigint; withdrawnShares: bigint };
+  },
+  context: EventContext
+) {
+  const entity: MetaMorphoVault_ReallocateWithdraw = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    txContext_id: txContextId(event.chainId, event.transaction.hash),
+    legacyVault_id: vaultId(event.chainId, event.srcAddress),
+    vaultAddress: normalizeAddress(event.srcAddress),
+    caller: normalizeAddress(event.params.caller),
+    market_id: event.params.id,
+    withdrawnAssets: event.params.withdrawnAssets,
+    withdrawnShares: event.params.withdrawnShares,
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+    isMonarch: isMonarchTx(event.transaction.input),
+  };
+  context.MetaMorphoVault_ReallocateWithdraw.set(entity);
 }
 
 export function trackCreateMorphoMarketV1Adapter(

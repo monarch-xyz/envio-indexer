@@ -7,6 +7,8 @@ import {
   AdaptiveCurveIrm,
   VaultV2Factory,
   VaultV2,
+  MetaMorphoFactory,
+  MetaMorphoVault,
   MorphoMarketV1AdapterFactory,
   MorphoMarketV1AdapterV2Factory,
 } from "generated";
@@ -32,10 +34,15 @@ import {
   trackWithdrawCollateral,
   trackBorrowRateUpdate,
   trackCreateVaultV2,
+  trackCreateLegacyVault,
   trackCreateMorphoMarketV1Adapter,
   trackVaultAllocate,
   trackCreateMorphoMarketV1AdapterV2,
   trackCreateMorphoMarketV1AdapterV2Factory,
+  trackLegacyVaultDeposit,
+  trackLegacyVaultReallocateSupply,
+  trackLegacyVaultReallocateWithdraw,
+  trackLegacyVaultWithdraw,
   trackVaultDeallocate,
   trackVaultDeposit,
   trackVaultForceDeallocate,
@@ -57,6 +64,7 @@ import {
   updateStateOnSetAuthorization,
   updateStateOnBorrowRateUpdate,
   updateStateOnCreateVaultV2,
+  updateStateOnCreateLegacyVault,
   updateStateOnCreateMorphoMarketV1Adapter,
   updateStateOnCreateMorphoMarketV1AdapterV2,
   updateStateOnVaultAddAdapter,
@@ -85,6 +93,10 @@ import {
 } from "./stateTracking";
 import {
   trackMorphoBlueTx,
+  trackLegacyVaultCreateTx,
+  trackLegacyVaultRebalanceTx,
+  trackLegacyVaultUserDepositTx,
+  trackLegacyVaultUserWithdrawTx,
   trackVaultConfigTx,
   trackVaultCreateTx,
   trackVaultRebalanceTx,
@@ -222,6 +234,36 @@ AdaptiveCurveIrm.BorrowRateUpdate.handler(async ({ event, context }) => {
 // ============================================
 // Adapter Factory Events
 // ============================================
+
+MetaMorphoFactory.CreateMetaMorpho.contractRegister(({ event, context }) => {
+  context.addMetaMorphoVault(event.params.metaMorpho);
+});
+
+MetaMorphoFactory.CreateMetaMorpho.handler(async ({ event, context }) => {
+  trackCreateLegacyVault(event, context);
+  await trackLegacyVaultCreateTx(event, context);
+  await updateStateOnCreateLegacyVault(event, context);
+});
+
+MetaMorphoVault.Deposit.handler(async ({ event, context }) => {
+  trackLegacyVaultDeposit(event, context);
+  await trackLegacyVaultUserDepositTx(event, context);
+});
+
+MetaMorphoVault.Withdraw.handler(async ({ event, context }) => {
+  trackLegacyVaultWithdraw(event, context);
+  await trackLegacyVaultUserWithdrawTx(event, context);
+});
+
+MetaMorphoVault.ReallocateSupply.handler(async ({ event, context }) => {
+  trackLegacyVaultReallocateSupply(event, context);
+  await trackLegacyVaultRebalanceTx(event, context);
+});
+
+MetaMorphoVault.ReallocateWithdraw.handler(async ({ event, context }) => {
+  trackLegacyVaultReallocateWithdraw(event, context);
+  await trackLegacyVaultRebalanceTx(event, context);
+});
 
 MorphoMarketV1AdapterFactory.CreateMorphoMarketV1Adapter.handler(async ({ event, context }) => {
   trackCreateMorphoMarketV1Adapter(event, context);

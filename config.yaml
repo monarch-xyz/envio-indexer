@@ -217,6 +217,38 @@ contracts:
         - hash
         - input
 
+- name: MetaMorphoFactory
+  handler: src/EventHandlers.ts
+  events:
+  - event: CreateMetaMorpho(address indexed metaMorpho, address indexed caller, address initialOwner, uint256 initialTimelock, address indexed asset, string name, string symbol, bytes32 salt)
+    field_selection:
+      transaction_fields:
+        - hash
+
+- name: MetaMorphoVault
+  handler: src/EventHandlers.ts
+  events:
+  - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
+    field_selection:
+      transaction_fields:
+        - hash
+        - input
+  - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
+    field_selection:
+      transaction_fields:
+        - hash
+        - input
+  - event: ReallocateSupply(address indexed caller, bytes32 indexed id, uint256 suppliedAssets, uint256 suppliedShares)
+    field_selection:
+      transaction_fields:
+        - hash
+        - input
+  - event: ReallocateWithdraw(address indexed caller, bytes32 indexed id, uint256 withdrawnAssets, uint256 withdrawnShares)
+    field_selection:
+      transaction_fields:
+        - hash
+        - input
+
 - name: MorphoMarketV1AdapterFactory
   handler: src/EventHandlers.ts
   events:
@@ -251,6 +283,11 @@ networks:
     address:
     - 0xA1D94F746dEfa1928926b84fB2596c06926C0405
   - name: VaultV2
+  - name: MetaMorphoFactory
+    address:
+    - 0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101
+    - 0x1897A8997241C1cD4bD0698647e4EB7213535c24
+  - name: MetaMorphoVault
   - name: MorphoMarketV1AdapterV2Factory
     address:
     - 0x32BB1c0D48D8b1B3363e86eeB9A0300BAd61ccc1
@@ -267,6 +304,10 @@ networks:
     address:
     - 0xC9b34c108014B44e5a189A830e7e04c56704a0c9
   - name: VaultV2
+  - name: MetaMorphoFactory
+    address:
+    - 0xe9EdE3929F43a7062a007C3e8652e4ACa610Bdc0
+  - name: MetaMorphoVault
   - name: MorphoMarketV1AdapterV2Factory
     address:
     - 0x9a13bdA35F98811fbAcf097966b2C838f3F9c58C
@@ -283,6 +324,10 @@ networks:
     address:
     - 0xC11a53eE9B1eCc7a068D8e40F8F17926584F97Cf
   - name: VaultV2
+  - name: MetaMorphoFactory
+    address:
+    - 0xa9c87daB340631C34BB738625C70499e29ddDC98
+  - name: MetaMorphoVault
   - name: MorphoMarketV1AdapterV2Factory
     address:
     - 0xc0006f52B38625C283dd2f972dD9B779A5851Dd0
@@ -296,6 +341,10 @@ networks:
     address:
     - 0x8B2F922162FBb60A6a072cC784A2E4168fB0bb0c
   - name: VaultV2
+  - name: MetaMorphoFactory
+    address:
+    - 0x33f20973275B2F574488b18929cd7DCBf1AbF275
+  - name: MetaMorphoVault
   - name: MorphoMarketV1AdapterV2Factory
     address:
     - 0xa00666E86C7e2FA8d2c78d9481E687e098340180
@@ -309,6 +358,10 @@ networks:
     address:
     - 0xD7217E5687FF1071356C780b5fe4803D9D967da7
   - name: VaultV2
+  - name: MetaMorphoFactory
+    address:
+    - 0xec051b19d654C48c357dC974376DeB6272f24e53
+  - name: MetaMorphoVault
   - name: MorphoMarketV1AdapterV2Factory
     address:
     - 0xaEff6Ef4B7bbfbAadB18b634A8F11392CBeB72Be
@@ -325,6 +378,11 @@ networks:
     address:
     - 0x4501125508079A99ebBebCE205DeC9593C2b5857
   - name: VaultV2
+  - name: MetaMorphoFactory
+    address:
+    - 0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101
+    - 0xFf62A7c278C62eD665133147129245053Bbf5918
+  - name: MetaMorphoVault
   - name: MorphoMarketV1AdapterFactory
     address:
     - 0x133baC94306B99f6dAD85c381a5be851d8DD717c
@@ -344,8 +402,26 @@ networks:
     address:
     - 0x6b46fa3cc9EBF8aB230aBAc664E37F2966Bf7971
   - name: VaultV2
+  - name: MetaMorphoFactory
+    address:
+    - 0x878988f5f561081deEa117717052164ea1Ef0c82
+  - name: MetaMorphoVault
   - name: MorphoMarketV1AdapterV2Factory
     address:
     - 0xeF84b1ecEbe43283ec5AF95D7a5c4D7dE0a9859b
+# - id: 42793
+#   start_block: 0
+#   contracts:
+#   - name: Morpho
+#     address:
+#     - 0xbCE7364E63C3B13C73E9977a83c9704E2aCa876e
+#   - name: AdaptiveCurveIrm
+#     address:
+#     - 0xC1523BE776e66ba07b609b1914D0925278f21FE5
+#   - name: MetaMorphoFactory
+#     address:
+#     - 0x997a79c3C04c5B9eb27d343ae126bcCFb5D74781
+#   - name: MetaMorphoVault
+#   # No VaultV2Factory / VaultV2 deployment on Etherlink yet.
 unordered_multichain_mode: true
 preload_handlers: true

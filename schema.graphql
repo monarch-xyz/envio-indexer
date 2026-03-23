@@ -357,6 +357,24 @@ type Adapter @index(fields: ["vaultAddress", "adapterType"]) {
   txHash: String!
 }
 
+type LegacyVault
+  @index(fields: ["vaultAddress", "vaultVersion"])
+  @index(fields: ["factoryAddress", "vaultVersion"]) {
+  id: ID!                      # "{chainId}_{vaultAddress}"
+  chainId: Int!
+  vaultAddress: String! @index
+  vaultVersion: String! @index
+  factoryAddress: String! @index
+  creator: String! @index
+  owner: String! @index
+  initialTimelock: BigInt!
+  asset: String! @index
+  name: String!
+  symbol: String!
+  createdAt: BigInt!
+  txHash: String!
+}
+
 type TxContext {
   id: ID!                      # "{chainId}_{txHash}"
   chainId: Int!
@@ -364,6 +382,7 @@ type TxContext {
   timestamp: BigInt!
   hasMorphoBlueEvent: Boolean!
   hasVaultV2Event: Boolean!
+  hasLegacyVaultEvent: Boolean!
   hasVaultUserDeposit: Boolean!
   hasVaultUserWithdraw: Boolean!
   hasVaultRebalance: Boolean!
@@ -383,6 +402,11 @@ type TxContext {
   vaultDeallocations: [VaultV2_Deallocate!]! @derivedFrom(field: "txContext")
   vaultForceDeallocations: [VaultV2_ForceDeallocate!]! @derivedFrom(field: "txContext")
   vaultWithdrawals: [VaultV2_Withdraw!]! @derivedFrom(field: "txContext")
+  legacyVaultCreations: [MetaMorphoFactory_CreateMetaMorpho!]! @derivedFrom(field: "txContext")
+  legacyVaultDeposits: [MetaMorphoVault_Deposit!]! @derivedFrom(field: "txContext")
+  legacyVaultWithdrawals: [MetaMorphoVault_Withdraw!]! @derivedFrom(field: "txContext")
+  legacyVaultReallocateSupplies: [MetaMorphoVault_ReallocateSupply!]! @derivedFrom(field: "txContext")
+  legacyVaultReallocateWithdrawals: [MetaMorphoVault_ReallocateWithdraw!]! @derivedFrom(field: "txContext")
 }
 
 type VaultV2Factory_CreateVaultV2 {
@@ -467,6 +491,86 @@ type VaultV2_Withdraw {
   onBehalf: String!
   assets: BigInt!
   shares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+  isMonarch: Boolean!
+}
+
+type MetaMorphoFactory_CreateMetaMorpho {
+  id: ID!
+  txContext: TxContext!
+  legacyVault: LegacyVault!
+  vaultAddress: String! @index
+  vaultVersion: String! @index
+  factoryAddress: String! @index
+  caller: String!
+  initialOwner: String!
+  initialTimelock: BigInt!
+  asset: String!
+  name: String!
+  symbol: String!
+  salt: String!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+}
+
+type MetaMorphoVault_Deposit {
+  id: ID!
+  txContext: TxContext!
+  legacyVault: LegacyVault!
+  vaultAddress: String! @index
+  sender: String!
+  owner: String!
+  assets: BigInt!
+  shares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+  isMonarch: Boolean!
+}
+
+type MetaMorphoVault_Withdraw {
+  id: ID!
+  txContext: TxContext!
+  legacyVault: LegacyVault!
+  vaultAddress: String! @index
+  sender: String!
+  receiver: String!
+  owner: String!
+  assets: BigInt!
+  shares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+  isMonarch: Boolean!
+}
+
+type MetaMorphoVault_ReallocateSupply {
+  id: ID!
+  txContext: TxContext!
+  legacyVault: LegacyVault!
+  vaultAddress: String! @index
+  caller: String!
+  market_id: String!
+  suppliedAssets: BigInt!
+  suppliedShares: BigInt!
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+  isMonarch: Boolean!
+}
+
+type MetaMorphoVault_ReallocateWithdraw {
+  id: ID!
+  txContext: TxContext!
+  legacyVault: LegacyVault!
+  vaultAddress: String! @index
+  caller: String!
+  market_id: String!
+  withdrawnAssets: BigInt!
+  withdrawnShares: BigInt!
   timestamp: BigInt!
   chainId: Int!
   txHash: String!

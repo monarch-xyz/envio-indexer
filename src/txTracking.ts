@@ -22,6 +22,7 @@ type TxFlags = Pick<
   TxContext,
   | "hasMorphoBlueEvent"
   | "hasVaultV2Event"
+  | "hasLegacyVaultEvent"
   | "hasVaultUserDeposit"
   | "hasVaultUserWithdraw"
   | "hasVaultRebalance"
@@ -31,6 +32,7 @@ type TxFlags = Pick<
 const defaultTxFlags = (): TxFlags => ({
   hasMorphoBlueEvent: false,
   hasVaultV2Event: false,
+  hasLegacyVaultEvent: false,
   hasVaultUserDeposit: false,
   hasVaultUserWithdraw: false,
   hasVaultRebalance: false,
@@ -93,6 +95,7 @@ async function updateTxContext(
   const nextFlags: TxFlags = {
     hasMorphoBlueEvent: entity.hasMorphoBlueEvent || !!updates.hasMorphoBlueEvent,
     hasVaultV2Event: entity.hasVaultV2Event || !!updates.hasVaultV2Event,
+    hasLegacyVaultEvent: entity.hasLegacyVaultEvent || !!updates.hasLegacyVaultEvent,
     hasVaultUserDeposit: entity.hasVaultUserDeposit || !!updates.hasVaultUserDeposit,
     hasVaultUserWithdraw: entity.hasVaultUserWithdraw || !!updates.hasVaultUserWithdraw,
     hasVaultRebalance: entity.hasVaultRebalance || !!updates.hasVaultRebalance,
@@ -149,5 +152,45 @@ export async function trackVaultCreateTx(event: BaseTxEvent, context: TxTracking
   await updateTxContext(context, event, {
     hasVaultV2Event: true,
     hasVaultConfigChange: true,
+  });
+}
+
+export async function trackLegacyVaultCreateTx(
+  event: BaseTxEvent,
+  context: TxTrackingContext
+) {
+  await updateTxContext(context, event, {
+    hasLegacyVaultEvent: true,
+    hasVaultConfigChange: true,
+  });
+}
+
+export async function trackLegacyVaultUserDepositTx(
+  event: BaseVaultTxEvent,
+  context: TxTrackingContext
+) {
+  await updateTxContext(context, event, {
+    hasLegacyVaultEvent: true,
+    hasVaultUserDeposit: true,
+  });
+}
+
+export async function trackLegacyVaultUserWithdrawTx(
+  event: BaseVaultTxEvent,
+  context: TxTrackingContext
+) {
+  await updateTxContext(context, event, {
+    hasLegacyVaultEvent: true,
+    hasVaultUserWithdraw: true,
+  });
+}
+
+export async function trackLegacyVaultRebalanceTx(
+  event: BaseVaultTxEvent,
+  context: TxTrackingContext
+) {
+  await updateTxContext(context, event, {
+    hasLegacyVaultEvent: true,
+    hasVaultRebalance: true,
   });
 }
