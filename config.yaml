@@ -337,6 +337,9 @@ networks:
   - name: Morpho
     address:
     - 0xD5D960E8C380B724a48AC59E2DfF1b2CB4a1eAee
+  - name: AdaptiveCurveIrm
+    address:
+    - 0x09475a3D6eA8c314c592b1a3799bDE044E2F400F
   - name: VaultV2Factory
     address:
     - 0x8B2F922162FBb60A6a072cC784A2E4168fB0bb0c
@@ -354,6 +357,9 @@ networks:
   - name: Morpho
     address:
     - 0x68e37dE8d93d3496ae143F2E900490f6280C57cD
+  - name: AdaptiveCurveIrm
+    address:
+    - 0xD4a426F010986dCad727e8dd6eed44cA4A9b7483
   - name: VaultV2Factory
     address:
     - 0xD7217E5687FF1071356C780b5fe4803D9D967da7

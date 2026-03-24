@@ -7,6 +7,18 @@ export const eventId = (chainId: number, blockNumber: number, logIndex: number) 
 
 export const marketId = (chainId: number, id: string) => `${chainId}_${id}`;
 
+export const marketHourlySnapshotId = (
+  chainId: number,
+  marketIdValue: string,
+  bucketStart: bigint
+) => `${marketId(chainId, marketIdValue)}_hour_${bucketStart.toString()}`;
+
+export const marketDailySnapshotId = (
+  chainId: number,
+  marketIdValue: string,
+  bucketStart: bigint
+) => `${marketId(chainId, marketIdValue)}_day_${bucketStart.toString()}`;
+
 export const positionId = (chainId: number, marketIdValue: string, user: string) =>
   `${chainId}_${marketIdValue}_${normalizeAddress(user)}`;
 

@@ -234,11 +234,99 @@ type Market {
   accruedBadDebtAssets: BigInt! # cumulative bad debt realized for this market
   accruedBadDebtShares: BigInt! # cumulative bad debt shares realized for this market
   collateralAssets: BigInt!
-  lastUpdate: BigInt!
+  lastUpdate: BigInt!          # Morpho market accrual timestamp
   fee: BigInt!
+  utilization: BigInt!
+  avgBorrowRate: BigInt!       # per-second WAD
+  avgSupplyRate: BigInt!       # per-second WAD
+  borrowRateApr: BigInt!       # annualized WAD
+  supplyRateApr: BigInt!       # annualized WAD
 
   # AdaptiveCurveIrm state
+  rateAtTarget: BigInt!        # per-second WAD
+  rateAtTargetApr: BigInt!     # annualized WAD
+}
+
+type MarketHourlySnapshot @index(fields: ["market_id", "bucketStart"]) {
+  id: ID!                      # "{chainId}_{marketId}_hour_{bucketStart}"
+  chainId: Int!
+  marketId: String!
+  market_id: String!
+  bucketStart: BigInt!         # start of the hour in unix seconds
+  timestamp: BigInt!           # latest event timestamp written to this bucket
+  blockNumber: BigInt!
+
+  totalSupplyAssets: BigInt!
+  totalSupplyShares: BigInt!
+  totalBorrowAssets: BigInt!
+  totalBorrowShares: BigInt!
+  accruedBadDebtAssets: BigInt!
+  accruedBadDebtShares: BigInt!
+  collateralAssets: BigInt!
+  lastUpdate: BigInt!
+  fee: BigInt!
+  utilization: BigInt!
+  avgBorrowRate: BigInt!
+  avgSupplyRate: BigInt!
+  borrowRateApr: BigInt!
+  supplyRateApr: BigInt!
   rateAtTarget: BigInt!
+  rateAtTargetApr: BigInt!
+
+  interestAccruedAssets: BigInt!
+  suppliedAssets: BigInt!
+  withdrawnAssets: BigInt!
+  borrowedAssets: BigInt!
+  repaidAssets: BigInt!
+  liquidatedBorrowAssets: BigInt!
+  badDebtAssets: BigInt!
+  suppliedCollateralAssets: BigInt!
+  withdrawnCollateralAssets: BigInt!
+  liquidatedCollateralAssets: BigInt!
+  netSupplyAssetsChange: BigInt!
+  netBorrowAssetsChange: BigInt!
+  netCollateralAssetsChange: BigInt!
+}
+
+type MarketDailySnapshot @index(fields: ["market_id", "bucketStart"]) {
+  id: ID!                      # "{chainId}_{marketId}_day_{bucketStart}"
+  chainId: Int!
+  marketId: String!
+  market_id: String!
+  bucketStart: BigInt!         # start of the day in unix seconds
+  timestamp: BigInt!           # latest event timestamp written to this bucket
+  blockNumber: BigInt!
+
+  totalSupplyAssets: BigInt!
+  totalSupplyShares: BigInt!
+  totalBorrowAssets: BigInt!
+  totalBorrowShares: BigInt!
+  accruedBadDebtAssets: BigInt!
+  accruedBadDebtShares: BigInt!
+  collateralAssets: BigInt!
+  lastUpdate: BigInt!
+  fee: BigInt!
+  utilization: BigInt!
+  avgBorrowRate: BigInt!
+  avgSupplyRate: BigInt!
+  borrowRateApr: BigInt!
+  supplyRateApr: BigInt!
+  rateAtTarget: BigInt!
+  rateAtTargetApr: BigInt!
+
+  interestAccruedAssets: BigInt!
+  suppliedAssets: BigInt!
+  withdrawnAssets: BigInt!
+  borrowedAssets: BigInt!
+  repaidAssets: BigInt!
+  liquidatedBorrowAssets: BigInt!
+  badDebtAssets: BigInt!
+  suppliedCollateralAssets: BigInt!
+  withdrawnCollateralAssets: BigInt!
+  liquidatedCollateralAssets: BigInt!
+  netSupplyAssetsChange: BigInt!
+  netBorrowAssetsChange: BigInt!
+  netCollateralAssetsChange: BigInt!
 }
 
 type Position {

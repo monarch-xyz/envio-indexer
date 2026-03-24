@@ -11,15 +11,27 @@ import {
 
 const createMarketContext = () => {
   const markets = new Map<string, any>();
+  const marketHourlySnapshots = new Map<string, any>();
+  const marketDailySnapshots = new Map<string, any>();
   const positions = new Map<string, any>();
 
   return {
     markets,
+    marketHourlySnapshots,
+    marketDailySnapshots,
     positions,
     context: {
       Market: {
         get: async (id: string) => markets.get(id),
         set: (entity: any) => markets.set(entity.id, entity),
+      },
+      MarketHourlySnapshot: {
+        get: async (id: string) => marketHourlySnapshots.get(id),
+        set: (entity: any) => marketHourlySnapshots.set(entity.id, entity),
+      },
+      MarketDailySnapshot: {
+        get: async (id: string) => marketDailySnapshots.get(id),
+        set: (entity: any) => marketDailySnapshots.set(entity.id, entity),
       },
       Position: {
         get: async (id: string) => positions.get(id),
@@ -63,7 +75,7 @@ describe("Market collateral state tracking", () => {
     await updateStateOnSupplyCollateral(
       {
         chainId,
-        block: { timestamp: 101 },
+        block: { number: 101, timestamp: 101 },
         params: {
           id: marketIdValue,
           onBehalf: borrower,
@@ -76,7 +88,7 @@ describe("Market collateral state tracking", () => {
     await updateStateOnWithdrawCollateral(
       {
         chainId,
-        block: { timestamp: 102 },
+        block: { number: 102, timestamp: 102 },
         params: {
           id: marketIdValue,
           onBehalf: borrower,
@@ -89,7 +101,7 @@ describe("Market collateral state tracking", () => {
     await updateStateOnLiquidate(
       {
         chainId,
-        block: { timestamp: 103 },
+        block: { number: 103, timestamp: 103 },
         params: {
           id: marketIdValue,
           borrower,
@@ -140,7 +152,7 @@ describe("Market collateral state tracking", () => {
     await updateStateOnSupply(
       {
         chainId,
-        block: { timestamp: 201 },
+        block: { number: 201, timestamp: 201 },
         params: {
           id: marketIdValue,
           onBehalf: supplier,
@@ -154,7 +166,7 @@ describe("Market collateral state tracking", () => {
     await updateStateOnBorrow(
       {
         chainId,
-        block: { timestamp: 202 },
+        block: { number: 202, timestamp: 202 },
         params: {
           id: marketIdValue,
           onBehalf: borrower,
@@ -168,7 +180,7 @@ describe("Market collateral state tracking", () => {
     await updateStateOnLiquidate(
       {
         chainId,
-        block: { timestamp: 203 },
+        block: { number: 203, timestamp: 203 },
         params: {
           id: marketIdValue,
           borrower,
@@ -185,7 +197,7 @@ describe("Market collateral state tracking", () => {
     await updateStateOnLiquidate(
       {
         chainId,
-        block: { timestamp: 204 },
+        block: { number: 204, timestamp: 204 },
         params: {
           id: marketIdValue,
           borrower,
@@ -203,8 +215,8 @@ describe("Market collateral state tracking", () => {
     assert.ok(market);
     assert.equal(market.totalSupplyAssets, 85n);
     assert.equal(market.totalSupplyShares, 85n);
-    assert.equal(market.totalBorrowAssets, 40n);
-    assert.equal(market.totalBorrowShares, 40n);
+    assert.equal(market.totalBorrowAssets, 25n);
+    assert.equal(market.totalBorrowShares, 25n);
     assert.equal(market.accruedBadDebtAssets, 15n);
     assert.equal(market.accruedBadDebtShares, 15n);
   });

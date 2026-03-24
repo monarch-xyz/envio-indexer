@@ -4,6 +4,8 @@
  */
 import type {
   Market,
+  MarketDailySnapshot,
+  MarketHourlySnapshot,
   Position,
   Authorization,
   Adapter,
@@ -26,48 +28,46 @@ import {
   vaultRoleId,
 } from "./ids";
 import { resolveLegacyVaultVersion } from "./legacyVaults";
+import {
+  enrichMarketWithDerivedRates,
+  type MarketSnapshotDelta,
+  upsertMarketSnapshots,
+} from "./marketSnapshots";
+
+type EntityStore<T> = {
+  get: (id: string) => Promise<T | undefined>;
+  set: (entity: T) => void;
+};
 
 type StateContext = {
-  Market: {
-    get: (id: string) => Promise<Market | undefined>;
-    set: (entity: Market) => void;
-  };
-  Position: {
-    get: (id: string) => Promise<Position | undefined>;
-    set: (entity: Position) => void;
-  };
-  Authorization: {
-    get: (id: string) => Promise<Authorization | undefined>;
-    set: (entity: Authorization) => void;
-  };
-  Adapter: {
-    get: (id: string) => Promise<Adapter | undefined>;
-    set: (entity: Adapter) => void;
-  };
-  LegacyVault: {
-    get: (id: string) => Promise<LegacyVault | undefined>;
-    set: (entity: LegacyVault) => void;
-  };
-  Vault: {
-    get: (id: string) => Promise<Vault | undefined>;
-    set: (entity: Vault) => void;
-  };
-  VaultAllocator: {
-    get: (id: string) => Promise<VaultAllocator | undefined>;
-    set: (entity: VaultAllocator) => void;
-  };
-  VaultSentinel: {
-    get: (id: string) => Promise<VaultSentinel | undefined>;
-    set: (entity: VaultSentinel) => void;
-  };
-  VaultAdapter: {
-    get: (id: string) => Promise<VaultAdapter | undefined>;
-    set: (entity: VaultAdapter) => void;
-  };
-  VaultCap: {
-    get: (id: string) => Promise<VaultCap | undefined>;
-    set: (entity: VaultCap) => void;
-  };
+  Market: EntityStore<Market>;
+  MarketHourlySnapshot: EntityStore<MarketHourlySnapshot>;
+  MarketDailySnapshot: EntityStore<MarketDailySnapshot>;
+  Position: EntityStore<Position>;
+  Authorization: EntityStore<Authorization>;
+  Adapter: EntityStore<Adapter>;
+  LegacyVault: EntityStore<LegacyVault>;
+  Vault: EntityStore<Vault>;
+  VaultAllocator: EntityStore<VaultAllocator>;
+  VaultSentinel: EntityStore<VaultSentinel>;
+  VaultAdapter: EntityStore<VaultAdapter>;
+  VaultCap: EntityStore<VaultCap>;
+};
+
+type MarketEventBlock = {
+  number: number;
+  timestamp: number;
+};
+
+type MarketEvent<TParams extends { id: string }> = {
+  chainId: number;
+  block: MarketEventBlock;
+  params: TParams;
+};
+
+type MarketMutation = {
+  market: Market;
+  delta?: MarketSnapshotDelta;
 };
 
 // ============================================
@@ -232,6 +232,42 @@ async function upsertKnownAdapter(
   });
 }
 
+async function persistMarket(
+  context: StateContext,
+  market: Market,
+  blockNumber: number,
+  timestamp: number,
+  delta?: MarketSnapshotDelta
+) {
+  const enrichedMarket = enrichMarketWithDerivedRates(market, BigInt(timestamp));
+  context.Market.set(enrichedMarket);
+  await upsertMarketSnapshots(context, enrichedMarket, blockNumber, timestamp, delta);
+}
+
+async function updateMarketForEvent<TParams extends { id: string }>(
+  context: StateContext,
+  event: MarketEvent<TParams>,
+  mutate: (market: Market) => MarketMutation
+) {
+  const id = marketId(event.chainId, event.params.id);
+  const market = await context.Market.get(id);
+  if (!market) return;
+
+  const { market: nextMarket, delta } = mutate(market);
+  await persistMarket(context, nextMarket, event.block.number, event.block.timestamp, delta);
+}
+
+async function updatePositionForMarket(
+  context: StateContext,
+  chainId: number,
+  marketIdValue: string,
+  user: string,
+  mutate: (position: Position) => Position
+) {
+  const position = await getOrCreatePosition(context, chainId, marketIdValue, user);
+  context.Position.set(mutate(position));
+}
+
 // ============================================
 // State Update Functions
 // ============================================
@@ -270,8 +306,14 @@ export async function updateStateOnCreateMarket(
     collateralAssets: 0n,
     lastUpdate: BigInt(event.block.timestamp),
     fee: 0n,
+    utilization: 0n,
+    avgBorrowRate: 0n,
+    avgSupplyRate: 0n,
+    borrowRateApr: 0n,
+    supplyRateApr: 0n,
     // AdaptiveCurveIrm state
     rateAtTarget: 0n,
+    rateAtTargetApr: 0n,
   };
 
   context.Market.set(market);
@@ -281,319 +323,299 @@ export async function updateStateOnCreateMarket(
  * SetFee - Updates Market.fee
  */
 export async function updateStateOnSetFee(
-  event: {
-    chainId: number;
-    block: { timestamp: number };
-    params: { id: string; newFee: bigint };
-  },
+  event: MarketEvent<{ id: string; newFee: bigint }>,
   context: StateContext
 ) {
-  const id = marketId(event.chainId, event.params.id);
-  const market = await context.Market.get(id);
-
-  if (market) {
-    context.Market.set({
+  await updateMarketForEvent(context, event, (market) => ({
+    market: {
       ...market,
       fee: event.params.newFee,
-      lastUpdate: BigInt(event.block.timestamp),
-    });
-  }
+    },
+  }));
 }
 
 /**
  * AccrueInterest - Updates Market totals
  */
 export async function updateStateOnAccrueInterest(
-  event: {
-    chainId: number;
-    block: { timestamp: number };
-    params: { id: string; interest: bigint; feeShares: bigint };
-  },
+  event: MarketEvent<{
+    id: string;
+    prevBorrowRate: bigint;
+    interest: bigint;
+    feeShares: bigint;
+  }>,
   context: StateContext
 ) {
-  const id = marketId(event.chainId, event.params.id);
-  const market = await context.Market.get(id);
-
-  if (market) {
-    context.Market.set({
+  await updateMarketForEvent(context, event, (market) => ({
+    market: {
       ...market,
       totalSupplyAssets: market.totalSupplyAssets + event.params.interest,
       totalSupplyShares: market.totalSupplyShares + event.params.feeShares,
       totalBorrowAssets: market.totalBorrowAssets + event.params.interest,
       lastUpdate: BigInt(event.block.timestamp),
-    });
-  }
+      avgBorrowRate: event.params.prevBorrowRate,
+    },
+    delta: {
+      interestAccruedAssets: event.params.interest,
+      netSupplyAssetsChange: event.params.interest,
+      netBorrowAssetsChange: event.params.interest,
+    },
+  }));
 }
 
 /**
  * Supply - Updates Market totals + Position supplyShares
  */
 export async function updateStateOnSupply(
-  event: {
-    chainId: number;
-    block: { timestamp: number };
-    params: { id: string; onBehalf: string; assets: bigint; shares: bigint };
-  },
+  event: MarketEvent<{
+    id: string;
+    onBehalf: string;
+    assets: bigint;
+    shares: bigint;
+  }>,
   context: StateContext
 ) {
-  const mktId = marketId(event.chainId, event.params.id);
-
-  // Update Market
-  const market = await context.Market.get(mktId);
-  if (market) {
-    context.Market.set({
+  await updateMarketForEvent(context, event, (market) => ({
+    market: {
       ...market,
       totalSupplyAssets: market.totalSupplyAssets + event.params.assets,
       totalSupplyShares: market.totalSupplyShares + event.params.shares,
-      lastUpdate: BigInt(event.block.timestamp),
-    });
-  }
+    },
+    delta: {
+      suppliedAssets: event.params.assets,
+      netSupplyAssetsChange: event.params.assets,
+    },
+  }));
 
-  // Upsert Position
-  const position = await getOrCreatePosition(
+  await updatePositionForMarket(
     context,
     event.chainId,
     event.params.id,
-    event.params.onBehalf
+    event.params.onBehalf,
+    (position) => ({
+      ...position,
+      supplyShares: position.supplyShares + event.params.shares,
+    })
   );
-  context.Position.set({
-    ...position,
-    supplyShares: position.supplyShares + event.params.shares,
-  });
 }
 
 /**
  * Withdraw - Updates Market totals + Position supplyShares
  */
 export async function updateStateOnWithdraw(
-  event: {
-    chainId: number;
-    block: { timestamp: number };
-    params: { id: string; onBehalf: string; assets: bigint; shares: bigint };
-  },
+  event: MarketEvent<{
+    id: string;
+    onBehalf: string;
+    assets: bigint;
+    shares: bigint;
+  }>,
   context: StateContext
 ) {
-  const mktId = marketId(event.chainId, event.params.id);
-
-  // Update Market
-  const market = await context.Market.get(mktId);
-  if (market) {
-    context.Market.set({
+  await updateMarketForEvent(context, event, (market) => ({
+    market: {
       ...market,
       totalSupplyAssets: market.totalSupplyAssets - event.params.assets,
       totalSupplyShares: market.totalSupplyShares - event.params.shares,
-      lastUpdate: BigInt(event.block.timestamp),
-    });
-  }
+    },
+    delta: {
+      withdrawnAssets: event.params.assets,
+      netSupplyAssetsChange: -event.params.assets,
+    },
+  }));
 
-  // Update Position
-  const position = await getOrCreatePosition(
+  await updatePositionForMarket(
     context,
     event.chainId,
     event.params.id,
-    event.params.onBehalf
+    event.params.onBehalf,
+    (position) => ({
+      ...position,
+      supplyShares: position.supplyShares - event.params.shares,
+    })
   );
-  context.Position.set({
-    ...position,
-    supplyShares: position.supplyShares - event.params.shares,
-  });
 }
 
 /**
  * SupplyCollateral - Updates Market.collateralAssets + Position collateral
  */
 export async function updateStateOnSupplyCollateral(
-  event: {
-    chainId: number;
-    block: { timestamp: number };
-    params: { id: string; onBehalf: string; assets: bigint };
-  },
+  event: MarketEvent<{ id: string; onBehalf: string; assets: bigint }>,
   context: StateContext
 ) {
-  const mktId = marketId(event.chainId, event.params.id);
-
-  // Update Market lastUpdate
-  const market = await context.Market.get(mktId);
-  if (market) {
-    context.Market.set({
+  await updateMarketForEvent(context, event, (market) => ({
+    market: {
       ...market,
       collateralAssets: market.collateralAssets + event.params.assets,
-      lastUpdate: BigInt(event.block.timestamp),
-    });
-  }
+    },
+    delta: {
+      suppliedCollateralAssets: event.params.assets,
+      netCollateralAssetsChange: event.params.assets,
+    },
+  }));
 
-  // Upsert Position
-  const position = await getOrCreatePosition(
+  await updatePositionForMarket(
     context,
     event.chainId,
     event.params.id,
-    event.params.onBehalf
+    event.params.onBehalf,
+    (position) => ({
+      ...position,
+      collateral: position.collateral + event.params.assets,
+    })
   );
-  context.Position.set({
-    ...position,
-    collateral: position.collateral + event.params.assets,
-  });
 }
 
 /**
  * WithdrawCollateral - Updates Market.collateralAssets + Position collateral
  */
 export async function updateStateOnWithdrawCollateral(
-  event: {
-    chainId: number;
-    block: { timestamp: number };
-    params: { id: string; onBehalf: string; assets: bigint };
-  },
+  event: MarketEvent<{ id: string; onBehalf: string; assets: bigint }>,
   context: StateContext
 ) {
-  const mktId = marketId(event.chainId, event.params.id);
-
-  // Update Market lastUpdate
-  const market = await context.Market.get(mktId);
-  if (market) {
-    context.Market.set({
+  await updateMarketForEvent(context, event, (market) => ({
+    market: {
       ...market,
       collateralAssets: market.collateralAssets - event.params.assets,
-      lastUpdate: BigInt(event.block.timestamp),
-    });
-  }
+    },
+    delta: {
+      withdrawnCollateralAssets: event.params.assets,
+      netCollateralAssetsChange: -event.params.assets,
+    },
+  }));
 
-  // Update Position
-  const position = await getOrCreatePosition(
+  await updatePositionForMarket(
     context,
     event.chainId,
     event.params.id,
-    event.params.onBehalf
+    event.params.onBehalf,
+    (position) => ({
+      ...position,
+      collateral: position.collateral - event.params.assets,
+    })
   );
-  context.Position.set({
-    ...position,
-    collateral: position.collateral - event.params.assets,
-  });
 }
 
 /**
  * Borrow - Updates Market totals + Position borrowShares
  */
 export async function updateStateOnBorrow(
-  event: {
-    chainId: number;
-    block: { timestamp: number };
-    params: { id: string; onBehalf: string; assets: bigint; shares: bigint };
-  },
+  event: MarketEvent<{
+    id: string;
+    onBehalf: string;
+    assets: bigint;
+    shares: bigint;
+  }>,
   context: StateContext
 ) {
-  const mktId = marketId(event.chainId, event.params.id);
-
-  // Update Market
-  const market = await context.Market.get(mktId);
-  if (market) {
-    context.Market.set({
+  await updateMarketForEvent(context, event, (market) => ({
+    market: {
       ...market,
       totalBorrowAssets: market.totalBorrowAssets + event.params.assets,
       totalBorrowShares: market.totalBorrowShares + event.params.shares,
-      lastUpdate: BigInt(event.block.timestamp),
-    });
-  }
+    },
+    delta: {
+      borrowedAssets: event.params.assets,
+      netBorrowAssetsChange: event.params.assets,
+    },
+  }));
 
-  // Update Position
-  const position = await getOrCreatePosition(
+  await updatePositionForMarket(
     context,
     event.chainId,
     event.params.id,
-    event.params.onBehalf
+    event.params.onBehalf,
+    (position) => ({
+      ...position,
+      borrowShares: position.borrowShares + event.params.shares,
+    })
   );
-  context.Position.set({
-    ...position,
-    borrowShares: position.borrowShares + event.params.shares,
-  });
 }
 
 /**
  * Repay - Updates Market totals + Position borrowShares
  */
 export async function updateStateOnRepay(
-  event: {
-    chainId: number;
-    block: { timestamp: number };
-    params: { id: string; onBehalf: string; assets: bigint; shares: bigint };
-  },
+  event: MarketEvent<{
+    id: string;
+    onBehalf: string;
+    assets: bigint;
+    shares: bigint;
+  }>,
   context: StateContext
 ) {
-  const mktId = marketId(event.chainId, event.params.id);
-
-  // Update Market
-  const market = await context.Market.get(mktId);
-  if (market) {
-    context.Market.set({
+  await updateMarketForEvent(context, event, (market) => ({
+    market: {
       ...market,
       totalBorrowAssets: market.totalBorrowAssets - event.params.assets,
       totalBorrowShares: market.totalBorrowShares - event.params.shares,
-      lastUpdate: BigInt(event.block.timestamp),
-    });
-  }
+    },
+    delta: {
+      repaidAssets: event.params.assets,
+      netBorrowAssetsChange: -event.params.assets,
+    },
+  }));
 
-  // Update Position
-  const position = await getOrCreatePosition(
+  await updatePositionForMarket(
     context,
     event.chainId,
     event.params.id,
-    event.params.onBehalf
+    event.params.onBehalf,
+    (position) => ({
+      ...position,
+      borrowShares: position.borrowShares - event.params.shares,
+    })
   );
-  context.Position.set({
-    ...position,
-    borrowShares: position.borrowShares - event.params.shares,
-  });
 }
 
 /**
  * Liquidate - Updates Market totals + Position (borrower)
  */
 export async function updateStateOnLiquidate(
-  event: {
-    chainId: number;
-    block: { timestamp: number };
-    params: {
-      id: string;
-      borrower: string;
-      repaidAssets: bigint;
-      repaidShares: bigint;
-      seizedAssets: bigint;
-      badDebtAssets: bigint;
-      badDebtShares: bigint;
-    };
-  },
+  event: MarketEvent<{
+    id: string;
+    borrower: string;
+    repaidAssets: bigint;
+    repaidShares: bigint;
+    seizedAssets: bigint;
+    badDebtAssets: bigint;
+    badDebtShares: bigint;
+  }>,
   context: StateContext
 ) {
-  const mktId = marketId(event.chainId, event.params.id);
-
-  // Update Market
-  const market = await context.Market.get(mktId);
-  if (market) {
-    context.Market.set({
+  await updateMarketForEvent(context, event, (market) => ({
+    market: {
       ...market,
       totalSupplyAssets: market.totalSupplyAssets - event.params.badDebtAssets,
       totalSupplyShares: market.totalSupplyShares - event.params.badDebtShares,
-      totalBorrowAssets: market.totalBorrowAssets - event.params.repaidAssets,
-      totalBorrowShares: market.totalBorrowShares - event.params.repaidShares,
+      totalBorrowAssets:
+        market.totalBorrowAssets - event.params.repaidAssets - event.params.badDebtAssets,
+      totalBorrowShares:
+        market.totalBorrowShares - event.params.repaidShares - event.params.badDebtShares,
       accruedBadDebtAssets: market.accruedBadDebtAssets + event.params.badDebtAssets,
       accruedBadDebtShares: market.accruedBadDebtShares + event.params.badDebtShares,
       collateralAssets: market.collateralAssets - event.params.seizedAssets,
-      lastUpdate: BigInt(event.block.timestamp),
-    });
-  }
+    },
+    delta: {
+      liquidatedBorrowAssets: event.params.repaidAssets,
+      badDebtAssets: event.params.badDebtAssets,
+      liquidatedCollateralAssets: event.params.seizedAssets,
+      netSupplyAssetsChange: -event.params.badDebtAssets,
+      netBorrowAssetsChange: -event.params.repaidAssets - event.params.badDebtAssets,
+      netCollateralAssetsChange: -event.params.seizedAssets,
+    },
+  }));
 
-  // Update Position (borrower)
-  const position = await getOrCreatePosition(
+  await updatePositionForMarket(
     context,
     event.chainId,
     event.params.id,
-    event.params.borrower
+    event.params.borrower,
+    (position) => ({
+      ...position,
+      collateral: position.collateral - event.params.seizedAssets,
+      borrowShares: position.borrowShares - event.params.repaidShares - event.params.badDebtShares,
+    })
   );
-  context.Position.set({
-    ...position,
-    collateral: position.collateral - event.params.seizedAssets,
-    borrowShares: position.borrowShares - event.params.repaidShares - event.params.badDebtShares,
-  });
 }
 
 /**
@@ -1156,19 +1178,13 @@ export async function updateStateOnVaultSetRelativeCap(
  * BorrowRateUpdate - Updates Market.rateAtTarget
  */
 export async function updateStateOnBorrowRateUpdate(
-  event: {
-    chainId: number;
-    params: { id: string; rateAtTarget: bigint };
-  },
+  event: MarketEvent<{ id: string; rateAtTarget: bigint }>,
   context: StateContext
 ) {
-  const id = marketId(event.chainId, event.params.id);
-  const market = await context.Market.get(id);
-
-  if (market) {
-    context.Market.set({
+  await updateMarketForEvent(context, event, (market) => ({
+    market: {
       ...market,
       rateAtTarget: event.params.rateAtTarget,
-    });
-  }
+    },
+  }));
 }
