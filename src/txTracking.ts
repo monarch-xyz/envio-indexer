@@ -1,10 +1,17 @@
-import type { TxContext } from "generated";
-import { normalizeHash, txContextId } from "./ids";
+import type { MarketTxContext, TxContext } from "generated";
+import { marketTxContextId, normalizeHash, txContextId } from "./ids";
 
 type TxTrackingContext = {
   TxContext: {
     get: (id: string) => Promise<TxContext | undefined>;
     set: (entity: TxContext) => void;
+  };
+};
+
+type MarketTxTrackingContext = {
+  MarketTxContext: {
+    get: (id: string) => Promise<MarketTxContext | undefined>;
+    set: (entity: MarketTxContext) => void;
   };
 };
 
@@ -18,6 +25,13 @@ type BaseVaultTxEvent = BaseTxEvent & {
   srcAddress: string;
 };
 
+type BaseMarketTxEvent = {
+  chainId: number;
+  block: { number: number; timestamp: number };
+  transaction: { hash: string; transactionIndex: number };
+  params: { id: string };
+};
+
 type TxFlags = Pick<
   TxContext,
   | "hasMorphoBlueEvent"
@@ -29,6 +43,18 @@ type TxFlags = Pick<
   | "hasVaultConfigChange"
 >;
 
+type MarketTxFlags = Pick<
+  MarketTxContext,
+  | "hasSupply"
+  | "hasWithdraw"
+  | "hasBorrow"
+  | "hasRepay"
+  | "hasSupplyCollateral"
+  | "hasWithdrawCollateral"
+  | "hasLegacyReallocateSupply"
+  | "hasLegacyReallocateWithdraw"
+>;
+
 const defaultTxFlags = (): TxFlags => ({
   hasMorphoBlueEvent: false,
   hasVaultV2Event: false,
@@ -37,6 +63,17 @@ const defaultTxFlags = (): TxFlags => ({
   hasVaultUserWithdraw: false,
   hasVaultRebalance: false,
   hasVaultConfigChange: false,
+});
+
+const defaultMarketTxFlags = (): MarketTxFlags => ({
+  hasSupply: false,
+  hasWithdraw: false,
+  hasBorrow: false,
+  hasRepay: false,
+  hasSupplyCollateral: false,
+  hasWithdrawCollateral: false,
+  hasLegacyReallocateSupply: false,
+  hasLegacyReallocateWithdraw: false,
 });
 
 const countTrue = (values: boolean[]) => values.filter(Boolean).length;
@@ -55,6 +92,19 @@ export function resolveVaultTxType(flags: TxFlags): string {
   if (flags.hasVaultUserWithdraw) return "user_withdraw";
   if (flags.hasVaultRebalance) return "rebalance";
   return "config";
+}
+
+function resolveMarketFlowFlags(flags: MarketTxFlags) {
+  return {
+    hasLoanFlow:
+      flags.hasSupply ||
+      flags.hasWithdraw ||
+      flags.hasBorrow ||
+      flags.hasRepay ||
+      flags.hasLegacyReallocateSupply ||
+      flags.hasLegacyReallocateWithdraw,
+    hasCollateralFlow: flags.hasSupplyCollateral || flags.hasWithdrawCollateral,
+  };
 }
 
 async function getOrCreateTxContext(
@@ -77,6 +127,33 @@ async function getOrCreateTxContext(
     timestamp: BigInt(timestamp),
     ...defaultTxFlags(),
     vaultTxType: "none",
+  };
+}
+
+async function getOrCreateMarketTxContext(
+  context: MarketTxTrackingContext,
+  event: BaseMarketTxEvent
+): Promise<MarketTxContext> {
+  const nextTxContextId = txContextId(event.chainId, event.transaction.hash);
+  const id = marketTxContextId(event.chainId, event.params.id, nextTxContextId);
+  const existing = await context.MarketTxContext.get(id);
+
+  if (existing) {
+    return existing;
+  }
+
+  return {
+    id,
+    chainId: event.chainId,
+    market_id: event.params.id,
+    txContext_id: nextTxContextId,
+    txHash: normalizeHash(event.transaction.hash),
+    timestamp: BigInt(event.block.timestamp),
+    blockNumber: BigInt(event.block.number),
+    transactionIndex: event.transaction.transactionIndex,
+    ...defaultMarketTxFlags(),
+    hasLoanFlow: false,
+    hasCollateralFlow: false,
   };
 }
 
@@ -110,8 +187,81 @@ async function updateTxContext(
   });
 }
 
+async function updateMarketTxContext(
+  context: MarketTxTrackingContext,
+  event: BaseMarketTxEvent,
+  updates: Partial<MarketTxFlags>
+) {
+  const entity = await getOrCreateMarketTxContext(context, event);
+
+  const nextFlags: MarketTxFlags = {
+    hasSupply: entity.hasSupply || !!updates.hasSupply,
+    hasWithdraw: entity.hasWithdraw || !!updates.hasWithdraw,
+    hasBorrow: entity.hasBorrow || !!updates.hasBorrow,
+    hasRepay: entity.hasRepay || !!updates.hasRepay,
+    hasSupplyCollateral: entity.hasSupplyCollateral || !!updates.hasSupplyCollateral,
+    hasWithdrawCollateral: entity.hasWithdrawCollateral || !!updates.hasWithdrawCollateral,
+    hasLegacyReallocateSupply:
+      entity.hasLegacyReallocateSupply || !!updates.hasLegacyReallocateSupply,
+    hasLegacyReallocateWithdraw:
+      entity.hasLegacyReallocateWithdraw || !!updates.hasLegacyReallocateWithdraw,
+  };
+
+  context.MarketTxContext.set({
+    ...entity,
+    ...nextFlags,
+    txHash: normalizeHash(event.transaction.hash),
+    timestamp: BigInt(event.block.timestamp),
+    blockNumber: BigInt(event.block.number),
+    transactionIndex: event.transaction.transactionIndex,
+    ...resolveMarketFlowFlags(nextFlags),
+  });
+}
+
 export async function trackMorphoBlueTx(event: BaseTxEvent, context: TxTrackingContext) {
   await updateTxContext(context, event, { hasMorphoBlueEvent: true });
+}
+
+export async function trackMarketBorrowTx(
+  event: BaseMarketTxEvent,
+  context: MarketTxTrackingContext
+) {
+  await updateMarketTxContext(context, event, { hasBorrow: true });
+}
+
+export async function trackMarketRepayTx(
+  event: BaseMarketTxEvent,
+  context: MarketTxTrackingContext
+) {
+  await updateMarketTxContext(context, event, { hasRepay: true });
+}
+
+export async function trackMarketSupplyTx(
+  event: BaseMarketTxEvent,
+  context: MarketTxTrackingContext
+) {
+  await updateMarketTxContext(context, event, { hasSupply: true });
+}
+
+export async function trackMarketSupplyCollateralTx(
+  event: BaseMarketTxEvent,
+  context: MarketTxTrackingContext
+) {
+  await updateMarketTxContext(context, event, { hasSupplyCollateral: true });
+}
+
+export async function trackMarketWithdrawTx(
+  event: BaseMarketTxEvent,
+  context: MarketTxTrackingContext
+) {
+  await updateMarketTxContext(context, event, { hasWithdraw: true });
+}
+
+export async function trackMarketWithdrawCollateralTx(
+  event: BaseMarketTxEvent,
+  context: MarketTxTrackingContext
+) {
+  await updateMarketTxContext(context, event, { hasWithdrawCollateral: true });
 }
 
 export async function trackVaultUserDepositTx(event: BaseVaultTxEvent, context: TxTrackingContext) {
@@ -193,4 +343,18 @@ export async function trackLegacyVaultRebalanceTx(
     hasLegacyVaultEvent: true,
     hasVaultRebalance: true,
   });
+}
+
+export async function trackMarketLegacyReallocateSupplyTx(
+  event: BaseMarketTxEvent,
+  context: MarketTxTrackingContext
+) {
+  await updateMarketTxContext(context, event, { hasLegacyReallocateSupply: true });
+}
+
+export async function trackMarketLegacyReallocateWithdrawTx(
+  event: BaseMarketTxEvent,
+  context: MarketTxTrackingContext
+) {
+  await updateMarketTxContext(context, event, { hasLegacyReallocateWithdraw: true });
 }

@@ -93,6 +93,14 @@ import {
 } from "./stateTracking";
 import {
   trackMorphoBlueTx,
+  trackMarketBorrowTx,
+  trackMarketLegacyReallocateSupplyTx,
+  trackMarketLegacyReallocateWithdrawTx,
+  trackMarketRepayTx,
+  trackMarketSupplyCollateralTx,
+  trackMarketSupplyTx,
+  trackMarketWithdrawCollateralTx,
+  trackMarketWithdrawTx,
   trackLegacyVaultCreateTx,
   trackLegacyVaultRebalanceTx,
   trackLegacyVaultUserDepositTx,
@@ -133,6 +141,7 @@ Morpho.Supply.handler(async ({ event, context }) => {
   // Track raw event
   trackSupply(event, context);
   await trackMorphoBlueTx(event, context);
+  await trackMarketSupplyTx(event, context);
   // Update state
   await updateStateOnSupply(event, context);
 });
@@ -141,6 +150,7 @@ Morpho.Withdraw.handler(async ({ event, context }) => {
   // Track raw event
   trackWithdraw(event, context);
   await trackMorphoBlueTx(event, context);
+  await trackMarketWithdrawTx(event, context);
   // Update state
   await updateStateOnWithdraw(event, context);
 });
@@ -149,6 +159,7 @@ Morpho.SupplyCollateral.handler(async ({ event, context }) => {
   // Track raw event
   trackSupplyCollateral(event, context);
   await trackMorphoBlueTx(event, context);
+  await trackMarketSupplyCollateralTx(event, context);
   // Update state
   await updateStateOnSupplyCollateral(event, context);
 });
@@ -157,6 +168,7 @@ Morpho.WithdrawCollateral.handler(async ({ event, context }) => {
   // Track raw event
   trackWithdrawCollateral(event, context);
   await trackMorphoBlueTx(event, context);
+  await trackMarketWithdrawCollateralTx(event, context);
   // Update state
   await updateStateOnWithdrawCollateral(event, context);
 });
@@ -165,6 +177,7 @@ Morpho.Borrow.handler(async ({ event, context }) => {
   // Track raw event
   trackBorrow(event, context);
   await trackMorphoBlueTx(event, context);
+  await trackMarketBorrowTx(event, context);
   // Update state
   await updateStateOnBorrow(event, context);
 });
@@ -173,6 +186,7 @@ Morpho.Repay.handler(async ({ event, context }) => {
   // Track raw event
   trackRepay(event, context);
   await trackMorphoBlueTx(event, context);
+  await trackMarketRepayTx(event, context);
   // Update state
   await updateStateOnRepay(event, context);
 });
@@ -258,11 +272,13 @@ MetaMorphoVault.Withdraw.handler(async ({ event, context }) => {
 MetaMorphoVault.ReallocateSupply.handler(async ({ event, context }) => {
   trackLegacyVaultReallocateSupply(event, context);
   await trackLegacyVaultRebalanceTx(event, context);
+  await trackMarketLegacyReallocateSupplyTx(event, context);
 });
 
 MetaMorphoVault.ReallocateWithdraw.handler(async ({ event, context }) => {
   trackLegacyVaultReallocateWithdraw(event, context);
   await trackLegacyVaultRebalanceTx(event, context);
+  await trackMarketLegacyReallocateWithdrawTx(event, context);
 });
 
 MorphoMarketV1AdapterFactory.CreateMorphoMarketV1Adapter.handler(async ({ event, context }) => {

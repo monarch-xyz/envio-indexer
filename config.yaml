@@ -11,6 +11,7 @@ contracts:
   - event: Borrow(bytes32 indexed id, address caller, address indexed onBehalf, address indexed receiver, uint256 assets, uint256 shares)
     field_selection:
       transaction_fields:
+        - transactionIndex
         - hash
         - input
   - event: CreateMarket(bytes32 indexed id, (address,address,address,address,uint256) marketParams)
@@ -41,6 +42,7 @@ contracts:
   - event: Repay(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets, uint256 shares)
     field_selection:
       transaction_fields:
+        - transactionIndex
         - hash
         - input
   - event: SetAuthorization(address indexed caller, address indexed authorizer, address indexed authorized, bool newIsAuthorized)
@@ -62,21 +64,25 @@ contracts:
   - event: Supply(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets, uint256 shares)
     field_selection:
       transaction_fields:
+        - transactionIndex
         - hash
         - input
   - event: SupplyCollateral(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets)
     field_selection:
       transaction_fields:
+        - transactionIndex
         - hash
         - input
   - event: Withdraw(bytes32 indexed id, address caller, address indexed onBehalf, address indexed receiver, uint256 assets, uint256 shares)
     field_selection:
       transaction_fields:
+        - transactionIndex
         - hash
         - input
   - event: WithdrawCollateral(bytes32 indexed id, address caller, address indexed onBehalf, address indexed receiver, uint256 assets)
     field_selection:
       transaction_fields:
+        - transactionIndex
         - hash
         - input
 
@@ -241,11 +247,13 @@ contracts:
   - event: ReallocateSupply(address indexed caller, bytes32 indexed id, uint256 suppliedAssets, uint256 suppliedShares)
     field_selection:
       transaction_fields:
+        - transactionIndex
         - hash
         - input
   - event: ReallocateWithdraw(address indexed caller, bytes32 indexed id, uint256 withdrawnAssets, uint256 withdrawnShares)
     field_selection:
       transaction_fields:
+        - transactionIndex
         - hash
         - input
 

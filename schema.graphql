@@ -497,6 +497,29 @@ type TxContext {
   legacyVaultReallocateWithdrawals: [MetaMorphoVault_ReallocateWithdraw!]! @derivedFrom(field: "txContext")
 }
 
+type MarketTxContext
+  @index(fields: ["chainId", "market_id", "blockNumber", "transactionIndex", "txHash"]) {
+  id: ID!                      # "{chainId}_{marketId}_{txContextId}"
+  chainId: Int!
+  market_id: String!
+  txContext: TxContext!
+  txHash: String!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionIndex: Int!
+
+  hasSupply: Boolean!
+  hasWithdraw: Boolean!
+  hasBorrow: Boolean!
+  hasRepay: Boolean!
+  hasSupplyCollateral: Boolean!
+  hasWithdrawCollateral: Boolean!
+  hasLegacyReallocateSupply: Boolean!
+  hasLegacyReallocateWithdraw: Boolean!
+  hasLoanFlow: Boolean!
+  hasCollateralFlow: Boolean!
+}
+
 type VaultV2Factory_CreateVaultV2 {
   id: ID!
   txContext: TxContext!

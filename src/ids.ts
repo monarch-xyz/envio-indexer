@@ -43,5 +43,11 @@ export const vaultCapId = (chainId: number, vaultAddress: string, paramId: strin
 export const txContextId = (chainId: number, txHash: string) =>
   `${chainId}_${normalizeHash(txHash)}`;
 
+export const marketTxContextId = (
+  chainId: number,
+  marketIdValue: string,
+  txContextIdValue: string
+) => `${chainId}_${marketIdValue}_${txContextIdValue}`;
+
 export const serializeIds = (ids: readonly string[]) =>
   JSON.stringify(ids.map((id) => id.toLowerCase()));
