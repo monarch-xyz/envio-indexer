@@ -424,6 +424,8 @@ networks:
     address:
     - 0xeF84b1ecEbe43283ec5AF95D7a5c4D7dE0a9859b
 - id: 42793
+  hypersync_config:
+    url: https://etherlink.hypersync.xyz
   start_block: 0
   contracts:
   - name: Morpho
