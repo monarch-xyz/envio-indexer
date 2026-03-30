@@ -423,19 +423,19 @@ networks:
   - name: MorphoMarketV1AdapterV2Factory
     address:
     - 0xeF84b1ecEbe43283ec5AF95D7a5c4D7dE0a9859b
-# - id: 42793
-#   start_block: 0
-#   contracts:
-#   - name: Morpho
-#     address:
-#     - 0xbCE7364E63C3B13C73E9977a83c9704E2aCa876e
-#   - name: AdaptiveCurveIrm
-#     address:
-#     - 0xC1523BE776e66ba07b609b1914D0925278f21FE5
-#   - name: MetaMorphoFactory
-#     address:
-#     - 0x997a79c3C04c5B9eb27d343ae126bcCFb5D74781
-#   - name: MetaMorphoVault
-#   # No VaultV2Factory / VaultV2 deployment on Etherlink yet.
+- id: 42793
+  start_block: 0
+  contracts:
+  - name: Morpho
+    address:
+    - 0xbCE7364E63C3B13C73E9977a83c9704E2aCa876e
+  - name: AdaptiveCurveIrm
+    address:
+    - 0xC1523BE776e66ba07b609b1914D0925278f21FE5
+  - name: MetaMorphoFactory
+    address: 
+    - 0x997a79c3C04c5B9eb27d343ae126bcCFb5D74781
+  - name: MetaMorphoVault
+  # No VaultV2Factory / VaultV2 deployment on Etherlink yet.
 unordered_multichain_mode: true
 preload_handlers: true
