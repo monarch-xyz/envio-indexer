@@ -437,5 +437,26 @@ networks:
     - 0x997a79c3C04c5B9eb27d343ae126bcCFb5D74781
   - name: MetaMorphoVault
   # No VaultV2Factory / VaultV2 deployment on Etherlink yet.
+- id: 10
+  start_block: 0
+  contracts:
+  - name: Morpho
+    address:
+    - 0xce95AfbB8EA029495c66020883F87aaE8864AF92
+  - name: AdaptiveCurveIrm
+    address:
+    - 0x8cD70A8F399428456b29546BC5dBe10ab6a06ef6
+  - name: VaultV2Factory
+    address:
+    - 0x6128b680b277Bf4Df80DFE9D8c55A498660870ef
+  - name: VaultV2
+  - name: MetaMorphoFactory
+    address:
+    - 0x3Bb6A6A0Bc85b367EFE0A5bAc81c5E52C892839a
+  - name: MetaMorphoVault
+  - name: MorphoMarketV1AdapterV2Factory
+    address:
+    - 0x71B299bDb52b6396429cd1E11c418324502CB434
+  
 unordered_multichain_mode: true
 preload_handlers: true
