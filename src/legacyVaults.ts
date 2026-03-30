@@ -7,6 +7,9 @@ const legacyVaultFactories: Record<number, Record<string, LegacyVaultVersion>> =
     [normalizeAddress("0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101")]: "v1",
     [normalizeAddress("0x1897A8997241C1cD4bD0698647e4EB7213535c24")]: "v1.1",
   },
+  10: {
+    [normalizeAddress("0x3Bb6A6A0Bc85b367EFE0A5bAc81c5E52C892839a")]: "v1.1",
+  },
   130: {
     [normalizeAddress("0xe9EdE3929F43a7062a007C3e8652e4ACa610Bdc0")]: "v1.1",
   },

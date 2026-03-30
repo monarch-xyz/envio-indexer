@@ -14,6 +14,10 @@ describe("Legacy vault tracking", () => {
       "v1.1"
     );
     assert.equal(
+      resolveLegacyVaultVersion(10, "0x3Bb6A6A0Bc85b367EFE0A5bAc81c5E52C892839a"),
+      "v1.1"
+    );
+    assert.equal(
       resolveLegacyVaultVersion(130, "0xe9EdE3929F43a7062a007C3e8652e4ACa610Bdc0"),
       "v1.1"
     );
