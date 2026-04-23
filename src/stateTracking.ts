@@ -268,6 +268,10 @@ async function updatePositionForMarket(
   context.Position.set(mutate(position));
 }
 
+function zeroFloorSub(value: bigint, delta: bigint) {
+  return value > delta ? value - delta : 0n;
+}
+
 // ============================================
 // State Update Functions
 // ============================================
@@ -546,7 +550,7 @@ export async function updateStateOnRepay(
   await updateMarketForEvent(context, event, (market) => ({
     market: {
       ...market,
-      totalBorrowAssets: market.totalBorrowAssets - event.params.assets,
+      totalBorrowAssets: zeroFloorSub(market.totalBorrowAssets, event.params.assets),
       totalBorrowShares: market.totalBorrowShares - event.params.shares,
     },
     delta: {
@@ -586,9 +590,9 @@ export async function updateStateOnLiquidate(
     market: {
       ...market,
       totalSupplyAssets: market.totalSupplyAssets - event.params.badDebtAssets,
-      totalSupplyShares: market.totalSupplyShares - event.params.badDebtShares,
       totalBorrowAssets:
-        market.totalBorrowAssets - event.params.repaidAssets - event.params.badDebtAssets,
+        zeroFloorSub(market.totalBorrowAssets, event.params.repaidAssets) -
+        event.params.badDebtAssets,
       totalBorrowShares:
         market.totalBorrowShares - event.params.repaidShares - event.params.badDebtShares,
       accruedBadDebtAssets: market.accruedBadDebtAssets + event.params.badDebtAssets,
@@ -1175,16 +1179,19 @@ export async function updateStateOnVaultSetRelativeCap(
 // ============================================
 
 /**
- * BorrowRateUpdate - Updates Market.rateAtTarget
+ * BorrowRateUpdate updates IRM state, not Morpho market totals. Keep this narrow:
+ * do not persist derived rates or snapshots from the IRM event.
  */
 export async function updateStateOnBorrowRateUpdate(
   event: MarketEvent<{ id: string; rateAtTarget: bigint }>,
   context: StateContext
 ) {
-  await updateMarketForEvent(context, event, (market) => ({
-    market: {
-      ...market,
-      rateAtTarget: event.params.rateAtTarget,
-    },
-  }));
+  const id = marketId(event.chainId, event.params.id);
+  const market = await context.Market.get(id);
+  if (!market) return;
+
+  context.Market.set({
+    ...market,
+    rateAtTarget: event.params.rateAtTarget,
+  });
 }

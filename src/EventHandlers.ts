@@ -241,7 +241,7 @@ Morpho.SetOwner.handler(async ({ event, context }) => {
 AdaptiveCurveIrm.BorrowRateUpdate.handler(async ({ event, context }) => {
   // Track raw event
   trackBorrowRateUpdate(event, context);
-  // Update Market.rateAtTarget
+  // Cache only the IRM state needed by the next Morpho market-touch event.
   await updateStateOnBorrowRateUpdate(event, context);
 });
 

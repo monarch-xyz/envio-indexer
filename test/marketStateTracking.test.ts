@@ -4,6 +4,7 @@ import {
   updateStateOnBorrow,
   updateStateOnCreateMarket,
   updateStateOnLiquidate,
+  updateStateOnRepay,
   updateStateOnSupply,
   updateStateOnSupplyCollateral,
   updateStateOnWithdrawCollateral,
@@ -214,10 +215,83 @@ describe("Market collateral state tracking", () => {
     const market = markets.get(marketId(chainId, marketIdValue));
     assert.ok(market);
     assert.equal(market.totalSupplyAssets, 85n);
-    assert.equal(market.totalSupplyShares, 85n);
+    assert.equal(market.totalSupplyShares, 100n);
     assert.equal(market.totalBorrowAssets, 25n);
     assert.equal(market.totalBorrowShares, 25n);
     assert.equal(market.accruedBadDebtAssets, 15n);
     assert.equal(market.accruedBadDebtShares, 15n);
+  });
+
+  it("zero-floors borrow asset accounting when repay assets round above debt", async () => {
+    const { markets, context } = createMarketContext();
+    const chainId = 1;
+    const marketIdValue = "0xmarket-repay-rounding";
+    const borrower = "0xB000000000000000000000000000000000000003";
+    const supplier = "0xS000000000000000000000000000000000000003";
+
+    await updateStateOnCreateMarket(
+      {
+        chainId,
+        block: { timestamp: 300 },
+        params: {
+          id: marketIdValue,
+          marketParams: [
+            "0xL000000000000000000000000000000000000003",
+            "0xC000000000000000000000000000000000000003",
+            "0xO000000000000000000000000000000000000003",
+            "0xI000000000000000000000000000000000000003",
+            860000000000000000n,
+          ] as const,
+        },
+      },
+      context
+    );
+
+    await updateStateOnSupply(
+      {
+        chainId,
+        block: { number: 301, timestamp: 301 },
+        params: {
+          id: marketIdValue,
+          onBehalf: supplier,
+          assets: 100n,
+          shares: 100n,
+        },
+      },
+      context
+    );
+
+    await updateStateOnBorrow(
+      {
+        chainId,
+        block: { number: 302, timestamp: 302 },
+        params: {
+          id: marketIdValue,
+          onBehalf: borrower,
+          assets: 10n,
+          shares: 10n,
+        },
+      },
+      context
+    );
+
+    await updateStateOnRepay(
+      {
+        chainId,
+        block: { number: 303, timestamp: 303 },
+        params: {
+          id: marketIdValue,
+          onBehalf: borrower,
+          assets: 11n,
+          shares: 10n,
+        },
+      },
+      context
+    );
+
+    const market = markets.get(marketId(chainId, marketIdValue));
+    assert.ok(market);
+    assert.equal(market.totalBorrowAssets, 0n);
+    assert.equal(market.totalBorrowShares, 0n);
   });
 });
