@@ -29,6 +29,7 @@ const ADAPTIVE_CURVE_IRM_ADDRESSES_BY_CHAIN = new Map<number, Set<string>>([
   [999, new Set(["0xd4a426f010986dcad727e8dd6eed44ca4a9b7483"])],
   [8453, new Set(["0x46415998764c29ab2a25cbea6254146d50d22687"])],
   [42161, new Set(["0x66f30587fb8d4206918deb78eca7d5ebbafd06da"])],
+  [747474, new Set(["0x4f708c0ae7ded3d74736594c2109c2e3c065b428"])],
 ]);
 
 type SnapshotStore<T extends SnapshotLike> = {

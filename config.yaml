@@ -423,6 +423,28 @@ networks:
   - name: MorphoMarketV1AdapterV2Factory
     address:
     - 0xeF84b1ecEbe43283ec5AF95D7a5c4D7dE0a9859b
+- id: 747474
+  hypersync_config:
+    url: https://katana.hypersync.xyz
+  start_block: 0
+  contracts:
+  - name: Morpho
+    address:
+    - 0xD50F2DffFd62f94Ee4AEd9ca05C61d0753268aBc
+  - name: AdaptiveCurveIrm
+    address:
+    - 0x4F708C0ae7deD3d74736594C2109C2E3c065B428
+  - name: VaultV2Factory
+    address:
+    - 0xFcb8b57E56787bB29e130Fca67f3c5a1232975D1
+  - name: VaultV2
+  - name: MetaMorphoFactory
+    address:
+    - 0x1c8De6889acee12257899BFeAa2b7e534de32E16
+  - name: MetaMorphoVault
+  - name: MorphoMarketV1AdapterV2Factory
+    address:
+    - 0x6d6A3ba62836d6B40277767dCAc8fd390d4BcedC
 - id: 42793
   hypersync_config:
     url: https://etherlink.hypersync.xyz
