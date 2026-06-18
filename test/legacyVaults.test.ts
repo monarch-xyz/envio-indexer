@@ -45,6 +45,10 @@ describe("Legacy vault tracking", () => {
       resolveLegacyVaultVersion(42793, "0x997a79c3C04c5B9eb27d343ae126bcCFb5D74781"),
       "v1.1"
     );
+    assert.equal(
+      resolveLegacyVaultVersion(747474, "0x1c8De6889acee12257899BFeAa2b7e534de32E16"),
+      "v1.1"
+    );
   });
 
   it("stores legacy vault metadata with the resolved version", async () => {
