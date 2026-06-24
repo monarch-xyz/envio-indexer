@@ -35,7 +35,7 @@ import type {
   MorphoMarketV1AdapterFactory_CreateAdapter,
   MorphoMarketV1AdapterV2Factory_CreateFactory,
   MorphoMarketV1AdapterV2Factory_CreateAdapter,
-} from "generated";
+} from "envio";
 import { adapterId, eventId, serializeIds, txContextId, vaultId, normalizeAddress } from "./ids";
 import { resolveLegacyVaultVersion } from "./legacyVaults";
 
@@ -146,7 +146,10 @@ export function trackCreateMarket(
     block: { number: number; timestamp: number };
     logIndex: number;
     transaction: { hash: string };
-    params: { id: string; marketParams: readonly [string, string, string, string, bigint] };
+    params: {
+      id: string;
+      marketParams: Readonly<{ 0: string; 1: string; 2: string; 3: string; 4: bigint }>;
+    };
   },
   context: EventContext
 ) {

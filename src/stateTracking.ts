@@ -15,7 +15,7 @@ import type {
   VaultSentinel,
   VaultAdapter,
   VaultCap,
-} from "generated";
+} from "envio";
 import {
   adapterId,
   authorizationId,
@@ -285,7 +285,7 @@ export async function updateStateOnCreateMarket(
     block: { timestamp: number };
     params: {
       id: string;
-      marketParams: readonly [string, string, string, string, bigint];
+      marketParams: Readonly<{ 0: string; 1: string; 2: string; 3: string; 4: bigint }>;
     };
   },
   context: StateContext

@@ -277,7 +277,7 @@ contracts:
       transaction_fields:
         - hash
 
-networks:
+chains:
 - id: 1
   start_block: 0
   contracts:
@@ -482,6 +482,4 @@ networks:
     address:
     - 0x71B299bDb52b6396429cd1E11c418324502CB434
   
-unordered_multichain_mode: true
-preload_handlers: true
 rollback_on_reorg: true

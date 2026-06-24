@@ -1,4 +1,4 @@
-import type { MarketTxContext, TxContext } from "generated";
+import type { MarketTxContext, TxContext } from "envio";
 import { marketTxContextId, normalizeHash, txContextId } from "./ids";
 
 type TxTrackingContext = {

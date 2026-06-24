@@ -2,16 +2,7 @@
  * Morpho Event Handlers
  * Combines event tracking (raw events) and state tracking (Market, Position, Authorization)
  */
-import {
-  Morpho,
-  AdaptiveCurveIrm,
-  VaultV2Factory,
-  VaultV2,
-  MetaMorphoFactory,
-  MetaMorphoVault,
-  MorphoMarketV1AdapterFactory,
-  MorphoMarketV1AdapterV2Factory,
-} from "generated";
+import { indexer } from "envio";
 
 // Event tracking - raw event entity storage
 import {
@@ -116,341 +107,519 @@ import {
 // Morpho Events with State Tracking
 // ============================================
 
-Morpho.CreateMarket.handler(async ({ event, context }) => {
-  // Track raw event
-  trackCreateMarket(event, context);
-  // Update state
-  await updateStateOnCreateMarket(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "CreateMarket" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackCreateMarket(event, context);
+    // Update state
+    await updateStateOnCreateMarket(event, context);
+  },
+);
 
-Morpho.SetFee.handler(async ({ event, context }) => {
-  // Track raw event
-  trackSetFee(event, context);
-  // Update state
-  await updateStateOnSetFee(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "SetFee" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackSetFee(event, context);
+    // Update state
+    await updateStateOnSetFee(event, context);
+  },
+);
 
-Morpho.AccrueInterest.handler(async ({ event, context }) => {
-  // Track raw event
-  trackAccrueInterest(event, context);
-  // Update state
-  await updateStateOnAccrueInterest(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "AccrueInterest" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackAccrueInterest(event, context);
+    // Update state
+    await updateStateOnAccrueInterest(event, context);
+  },
+);
 
-Morpho.Supply.handler(async ({ event, context }) => {
-  // Track raw event
-  trackSupply(event, context);
-  await trackMorphoBlueTx(event, context);
-  await trackMarketSupplyTx(event, context);
-  // Update state
-  await updateStateOnSupply(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "Supply" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackSupply(event, context);
+    await trackMorphoBlueTx(event, context);
+    await trackMarketSupplyTx(event, context);
+    // Update state
+    await updateStateOnSupply(event, context);
+  },
+);
 
-Morpho.Withdraw.handler(async ({ event, context }) => {
-  // Track raw event
-  trackWithdraw(event, context);
-  await trackMorphoBlueTx(event, context);
-  await trackMarketWithdrawTx(event, context);
-  // Update state
-  await updateStateOnWithdraw(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "Withdraw" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackWithdraw(event, context);
+    await trackMorphoBlueTx(event, context);
+    await trackMarketWithdrawTx(event, context);
+    // Update state
+    await updateStateOnWithdraw(event, context);
+  },
+);
 
-Morpho.SupplyCollateral.handler(async ({ event, context }) => {
-  // Track raw event
-  trackSupplyCollateral(event, context);
-  await trackMorphoBlueTx(event, context);
-  await trackMarketSupplyCollateralTx(event, context);
-  // Update state
-  await updateStateOnSupplyCollateral(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "SupplyCollateral" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackSupplyCollateral(event, context);
+    await trackMorphoBlueTx(event, context);
+    await trackMarketSupplyCollateralTx(event, context);
+    // Update state
+    await updateStateOnSupplyCollateral(event, context);
+  },
+);
 
-Morpho.WithdrawCollateral.handler(async ({ event, context }) => {
-  // Track raw event
-  trackWithdrawCollateral(event, context);
-  await trackMorphoBlueTx(event, context);
-  await trackMarketWithdrawCollateralTx(event, context);
-  // Update state
-  await updateStateOnWithdrawCollateral(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "WithdrawCollateral" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackWithdrawCollateral(event, context);
+    await trackMorphoBlueTx(event, context);
+    await trackMarketWithdrawCollateralTx(event, context);
+    // Update state
+    await updateStateOnWithdrawCollateral(event, context);
+  },
+);
 
-Morpho.Borrow.handler(async ({ event, context }) => {
-  // Track raw event
-  trackBorrow(event, context);
-  await trackMorphoBlueTx(event, context);
-  await trackMarketBorrowTx(event, context);
-  // Update state
-  await updateStateOnBorrow(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "Borrow" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackBorrow(event, context);
+    await trackMorphoBlueTx(event, context);
+    await trackMarketBorrowTx(event, context);
+    // Update state
+    await updateStateOnBorrow(event, context);
+  },
+);
 
-Morpho.Repay.handler(async ({ event, context }) => {
-  // Track raw event
-  trackRepay(event, context);
-  await trackMorphoBlueTx(event, context);
-  await trackMarketRepayTx(event, context);
-  // Update state
-  await updateStateOnRepay(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "Repay" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackRepay(event, context);
+    await trackMorphoBlueTx(event, context);
+    await trackMarketRepayTx(event, context);
+    // Update state
+    await updateStateOnRepay(event, context);
+  },
+);
 
-Morpho.Liquidate.handler(async ({ event, context }) => {
-  // Track raw event
-  trackLiquidate(event, context);
-  await trackMorphoBlueTx(event, context);
-  // Update state
-  await updateStateOnLiquidate(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "Liquidate" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackLiquidate(event, context);
+    await trackMorphoBlueTx(event, context);
+    // Update state
+    await updateStateOnLiquidate(event, context);
+  },
+);
 
-Morpho.SetAuthorization.handler(async ({ event, context }) => {
-  // Track raw event
-  trackSetAuthorization(event, context);
-  // Update state
-  await updateStateOnSetAuthorization(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "SetAuthorization" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackSetAuthorization(event, context);
+    // Update state
+    await updateStateOnSetAuthorization(event, context);
+  },
+);
 
 // ============================================
 // Morpho Events without State Tracking (raw tracking only)
 // ============================================
 
-Morpho.EnableIrm.handler(async ({ event, context }) => {
-  trackEnableIrm(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "EnableIrm" },
+  async ({ event, context }) => {
+    trackEnableIrm(event, context);
+  },
+);
 
-Morpho.EnableLltv.handler(async ({ event, context }) => {
-  trackEnableLltv(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "EnableLltv" },
+  async ({ event, context }) => {
+    trackEnableLltv(event, context);
+  },
+);
 
-Morpho.FlashLoan.handler(async ({ event, context }) => {
-  trackFlashLoan(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "FlashLoan" },
+  async ({ event, context }) => {
+    trackFlashLoan(event, context);
+  },
+);
 
-Morpho.IncrementNonce.handler(async ({ event, context }) => {
-  trackIncrementNonce(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "IncrementNonce" },
+  async ({ event, context }) => {
+    trackIncrementNonce(event, context);
+  },
+);
 
-Morpho.SetFeeRecipient.handler(async ({ event, context }) => {
-  trackSetFeeRecipient(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "SetFeeRecipient" },
+  async ({ event, context }) => {
+    trackSetFeeRecipient(event, context);
+  },
+);
 
-Morpho.SetOwner.handler(async ({ event, context }) => {
-  trackSetOwner(event, context);
-});
+indexer.onEvent(
+  { contract: "Morpho", event: "SetOwner" },
+  async ({ event, context }) => {
+    trackSetOwner(event, context);
+  },
+);
 
 // ============================================
 // AdaptiveCurveIrm Events
 // ============================================
 
-AdaptiveCurveIrm.BorrowRateUpdate.handler(async ({ event, context }) => {
-  // Track raw event
-  trackBorrowRateUpdate(event, context);
-  // Cache only the IRM state needed by the next Morpho market-touch event.
-  await updateStateOnBorrowRateUpdate(event, context);
-});
+indexer.onEvent(
+  { contract: "AdaptiveCurveIrm", event: "BorrowRateUpdate" },
+  async ({ event, context }) => {
+    // Track raw event
+    trackBorrowRateUpdate(event, context);
+    // Cache only the IRM state needed by the next Morpho market-touch event.
+    await updateStateOnBorrowRateUpdate(event, context);
+  },
+);
 
 // ============================================
 // Adapter Factory Events
 // ============================================
 
-MetaMorphoFactory.CreateMetaMorpho.contractRegister(({ event, context }) => {
-  context.addMetaMorphoVault(event.params.metaMorpho);
-});
-
-MetaMorphoFactory.CreateMetaMorpho.handler(async ({ event, context }) => {
-  trackCreateLegacyVault(event, context);
-  await trackLegacyVaultCreateTx(event, context);
-  await updateStateOnCreateLegacyVault(event, context);
-});
-
-MetaMorphoVault.Deposit.handler(async ({ event, context }) => {
-  trackLegacyVaultDeposit(event, context);
-  await trackLegacyVaultUserDepositTx(event, context);
-});
-
-MetaMorphoVault.Withdraw.handler(async ({ event, context }) => {
-  trackLegacyVaultWithdraw(event, context);
-  await trackLegacyVaultUserWithdrawTx(event, context);
-});
-
-MetaMorphoVault.ReallocateSupply.handler(async ({ event, context }) => {
-  trackLegacyVaultReallocateSupply(event, context);
-  await trackLegacyVaultRebalanceTx(event, context);
-  await trackMarketLegacyReallocateSupplyTx(event, context);
-});
-
-MetaMorphoVault.ReallocateWithdraw.handler(async ({ event, context }) => {
-  trackLegacyVaultReallocateWithdraw(event, context);
-  await trackLegacyVaultRebalanceTx(event, context);
-  await trackMarketLegacyReallocateWithdrawTx(event, context);
-});
-
-MorphoMarketV1AdapterFactory.CreateMorphoMarketV1Adapter.handler(async ({ event, context }) => {
-  trackCreateMorphoMarketV1Adapter(event, context);
-  await updateStateOnCreateMorphoMarketV1Adapter(event, context);
-});
-
-MorphoMarketV1AdapterV2Factory.CreateMorphoMarketV1AdapterV2Factory.handler(
+indexer.contractRegister(
+  { contract: "MetaMorphoFactory", event: "CreateMetaMorpho" },
   async ({ event, context }) => {
-    trackCreateMorphoMarketV1AdapterV2Factory(event, context);
-  }
+    context.chain.MetaMorphoVault.add(event.params.metaMorpho);
+  },
 );
 
-MorphoMarketV1AdapterV2Factory.CreateMorphoMarketV1AdapterV2.handler(
+indexer.onEvent(
+  { contract: "MetaMorphoFactory", event: "CreateMetaMorpho" },
+  async ({ event, context }) => {
+    trackCreateLegacyVault(event, context);
+    await trackLegacyVaultCreateTx(event, context);
+    await updateStateOnCreateLegacyVault(event, context);
+  },
+);
+
+indexer.onEvent(
+  { contract: "MetaMorphoVault", event: "Deposit" },
+  async ({ event, context }) => {
+    trackLegacyVaultDeposit(event, context);
+    await trackLegacyVaultUserDepositTx(event, context);
+  },
+);
+
+indexer.onEvent(
+  { contract: "MetaMorphoVault", event: "Withdraw" },
+  async ({ event, context }) => {
+    trackLegacyVaultWithdraw(event, context);
+    await trackLegacyVaultUserWithdrawTx(event, context);
+  },
+);
+
+indexer.onEvent(
+  { contract: "MetaMorphoVault", event: "ReallocateSupply" },
+  async ({ event, context }) => {
+    trackLegacyVaultReallocateSupply(event, context);
+    await trackLegacyVaultRebalanceTx(event, context);
+    await trackMarketLegacyReallocateSupplyTx(event, context);
+  },
+);
+
+indexer.onEvent(
+  { contract: "MetaMorphoVault", event: "ReallocateWithdraw" },
+  async ({ event, context }) => {
+    trackLegacyVaultReallocateWithdraw(event, context);
+    await trackLegacyVaultRebalanceTx(event, context);
+    await trackMarketLegacyReallocateWithdrawTx(event, context);
+  },
+);
+
+indexer.onEvent(
+  {
+    contract: "MorphoMarketV1AdapterFactory",
+    event: "CreateMorphoMarketV1Adapter",
+  },
+  async ({ event, context }) => {
+    trackCreateMorphoMarketV1Adapter(event, context);
+    await updateStateOnCreateMorphoMarketV1Adapter(event, context);
+  },
+);
+
+indexer.onEvent(
+  {
+    contract: "MorphoMarketV1AdapterV2Factory",
+    event: "CreateMorphoMarketV1AdapterV2Factory",
+  },
+
+  async ({ event, context }) => {
+    trackCreateMorphoMarketV1AdapterV2Factory(event, context);
+  },
+);
+
+indexer.onEvent(
+  {
+    contract: "MorphoMarketV1AdapterV2Factory",
+    event: "CreateMorphoMarketV1AdapterV2",
+  },
+
   async ({ event, context }) => {
     trackCreateMorphoMarketV1AdapterV2(event, context);
     await updateStateOnCreateMorphoMarketV1AdapterV2(event, context);
-  }
+  },
 );
 
 // ============================================
 // VaultV2 Events
 // ============================================
 
-VaultV2Factory.CreateVaultV2.contractRegister(({ event, context }) => {
-  context.addVaultV2(event.params.newVaultV2);
-});
+indexer.contractRegister(
+  { contract: "VaultV2Factory", event: "CreateVaultV2" },
+  async ({ event, context }) => {
+    context.chain.VaultV2.add(event.params.newVaultV2);
+  },
+);
 
-VaultV2Factory.CreateVaultV2.handler(async ({ event, context }) => {
-  trackCreateVaultV2(event, context);
-  await trackVaultCreateTx(event, context);
-  await updateStateOnCreateVaultV2(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2Factory", event: "CreateVaultV2" },
+  async ({ event, context }) => {
+    trackCreateVaultV2(event, context);
+    await trackVaultCreateTx(event, context);
+    await updateStateOnCreateVaultV2(event, context);
+  },
+);
 
-VaultV2.AddAdapter.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultAddAdapter(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "AddAdapter" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultAddAdapter(event, context);
+  },
+);
 
-VaultV2.Allocate.handler(async ({ event, context }) => {
-  trackVaultAllocate(event, context);
-  await trackVaultRebalanceTx(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "Allocate" },
+  async ({ event, context }) => {
+    trackVaultAllocate(event, context);
+    await trackVaultRebalanceTx(event, context);
+  },
+);
 
-VaultV2.DecreaseAbsoluteCap.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetAbsoluteCap(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "DecreaseAbsoluteCap" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetAbsoluteCap(event, context);
+  },
+);
 
-VaultV2.DecreaseRelativeCap.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetRelativeCap(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "DecreaseRelativeCap" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetRelativeCap(event, context);
+  },
+);
 
-VaultV2.Deallocate.handler(async ({ event, context }) => {
-  trackVaultDeallocate(event, context);
-  await trackVaultRebalanceTx(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "Deallocate" },
+  async ({ event, context }) => {
+    trackVaultDeallocate(event, context);
+    await trackVaultRebalanceTx(event, context);
+  },
+);
 
-VaultV2.Deposit.handler(async ({ event, context }) => {
-  trackVaultDeposit(event, context);
-  await trackVaultUserDepositTx(event, context);
-  await updateStateOnVaultDeposit(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "Deposit" },
+  async ({ event, context }) => {
+    trackVaultDeposit(event, context);
+    await trackVaultUserDepositTx(event, context);
+    await updateStateOnVaultDeposit(event, context);
+  },
+);
 
-VaultV2.ForceDeallocate.handler(async ({ event, context }) => {
-  trackVaultForceDeallocate(event, context);
-  await trackVaultRebalanceTx(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "ForceDeallocate" },
+  async ({ event, context }) => {
+    trackVaultForceDeallocate(event, context);
+    await trackVaultRebalanceTx(event, context);
+  },
+);
 
-VaultV2.IncreaseAbsoluteCap.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetAbsoluteCap(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "IncreaseAbsoluteCap" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetAbsoluteCap(event, context);
+  },
+);
 
-VaultV2.IncreaseRelativeCap.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetRelativeCap(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "IncreaseRelativeCap" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetRelativeCap(event, context);
+  },
+);
 
-VaultV2.RemoveAdapter.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultRemoveAdapter(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "RemoveAdapter" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultRemoveAdapter(event, context);
+  },
+);
 
-VaultV2.SetAdapterRegistry.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetAdapterRegistry(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetAdapterRegistry" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetAdapterRegistry(event, context);
+  },
+);
 
-VaultV2.SetCurator.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetCurator(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetCurator" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetCurator(event, context);
+  },
+);
 
-VaultV2.SetForceDeallocatePenalty.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetForceDeallocatePenalty(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetForceDeallocatePenalty" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetForceDeallocatePenalty(event, context);
+  },
+);
 
-VaultV2.SetIsAllocator.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetIsAllocator(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetIsAllocator" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetIsAllocator(event, context);
+  },
+);
 
-VaultV2.SetIsSentinel.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetIsSentinel(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetIsSentinel" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetIsSentinel(event, context);
+  },
+);
 
-VaultV2.SetManagementFee.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetManagementFee(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetManagementFee" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetManagementFee(event, context);
+  },
+);
 
-VaultV2.SetManagementFeeRecipient.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetManagementFeeRecipient(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetManagementFeeRecipient" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetManagementFeeRecipient(event, context);
+  },
+);
 
-VaultV2.SetMaxRate.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetMaxRate(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetMaxRate" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetMaxRate(event, context);
+  },
+);
 
-VaultV2.SetName.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetName(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetName" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetName(event, context);
+  },
+);
 
-VaultV2.SetOwner.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetOwner(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetOwner" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetOwner(event, context);
+  },
+);
 
-VaultV2.SetPerformanceFee.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetPerformanceFee(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetPerformanceFee" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetPerformanceFee(event, context);
+  },
+);
 
-VaultV2.SetPerformanceFeeRecipient.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetPerformanceFeeRecipient(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetPerformanceFeeRecipient" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetPerformanceFeeRecipient(event, context);
+  },
+);
 
-VaultV2.SetReceiveAssetsGate.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetReceiveAssetsGate(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetReceiveAssetsGate" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetReceiveAssetsGate(event, context);
+  },
+);
 
-VaultV2.SetReceiveSharesGate.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetReceiveSharesGate(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetReceiveSharesGate" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetReceiveSharesGate(event, context);
+  },
+);
 
-VaultV2.SetSendAssetsGate.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetSendAssetsGate(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetSendAssetsGate" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetSendAssetsGate(event, context);
+  },
+);
 
-VaultV2.SetSendSharesGate.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetSendSharesGate(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetSendSharesGate" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetSendSharesGate(event, context);
+  },
+);
 
-VaultV2.SetSymbol.handler(async ({ event, context }) => {
-  await trackVaultConfigTx(event, context);
-  await updateStateOnVaultSetSymbol(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "SetSymbol" },
+  async ({ event, context }) => {
+    await trackVaultConfigTx(event, context);
+    await updateStateOnVaultSetSymbol(event, context);
+  },
+);
 
-VaultV2.Withdraw.handler(async ({ event, context }) => {
-  trackVaultWithdraw(event, context);
-  await trackVaultUserWithdrawTx(event, context);
-  await updateStateOnVaultWithdraw(event, context);
-});
+indexer.onEvent(
+  { contract: "VaultV2", event: "Withdraw" },
+  async ({ event, context }) => {
+    trackVaultWithdraw(event, context);
+    await trackVaultUserWithdrawTx(event, context);
+    await updateStateOnVaultWithdraw(event, context);
+  },
+);

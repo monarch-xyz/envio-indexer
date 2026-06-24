@@ -1,4 +1,4 @@
-import type { Market, MarketDailySnapshot, MarketHourlySnapshot } from "generated";
+import type { Market, MarketDailySnapshot, MarketHourlySnapshot } from "envio";
 import { marketDailySnapshotId, marketHourlySnapshotId, normalizeAddress } from "./ids";
 
 const WAD = 1_000000000000000000n;
