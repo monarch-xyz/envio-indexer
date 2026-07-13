@@ -22,6 +22,13 @@ export const marketDailySnapshotId = (
 export const positionId = (chainId: number, marketIdValue: string, user: string) =>
   `${chainId}_${marketIdValue}_${normalizeAddress(user)}`;
 
+export const positionDailyFlowId = (
+  chainId: number,
+  marketIdValue: string,
+  user: string,
+  bucketStart: bigint
+) => `${positionId(chainId, marketIdValue, user)}_day_${bucketStart.toString()}`;
+
 export const authorizationId = (chainId: number, authorizer: string, authorizee: string) =>
   `${chainId}_${normalizeAddress(authorizer)}_${normalizeAddress(authorizee)}`;
 

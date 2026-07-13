@@ -1,5 +1,5 @@
 import assert from "assert";
-import { marketId, positionId } from "../src/ids";
+import { marketId, positionDailyFlowId, positionId } from "../src/ids";
 import {
   updateStateOnBorrow,
   updateStateOnCreateMarket,
@@ -7,6 +7,7 @@ import {
   updateStateOnRepay,
   updateStateOnSupply,
   updateStateOnSupplyCollateral,
+  updateStateOnWithdraw,
   updateStateOnWithdrawCollateral,
 } from "../src/stateTracking";
 
@@ -15,12 +16,14 @@ const createMarketContext = () => {
   const marketHourlySnapshots = new Map<string, any>();
   const marketDailySnapshots = new Map<string, any>();
   const positions = new Map<string, any>();
+  const positionDailyFlows = new Map<string, any>();
 
   return {
     markets,
     marketHourlySnapshots,
     marketDailySnapshots,
     positions,
+    positionDailyFlows,
     context: {
       Market: {
         get: async (id: string) => markets.get(id),
@@ -38,11 +41,181 @@ const createMarketContext = () => {
         get: async (id: string) => positions.get(id),
         set: (entity: any) => positions.set(entity.id, entity),
       },
+      PositionDailyFlow: {
+        get: async (id: string) => positionDailyFlows.get(id),
+        set: (entity: any) => positionDailyFlows.set(entity.id, entity),
+      },
     } as any,
   };
 };
 
-describe("Market collateral state tracking", () => {
+describe("Market state tracking", () => {
+  it("tracks compact lifetime supplier history across exited periods", async () => {
+    const { positions, positionDailyFlows, context } = createMarketContext();
+    const chainId = 1;
+    const marketIdValue = "0xmarket-supply-history";
+    const supplier = "0xS000000000000000000000000000000000000010";
+
+    await updateStateOnSupply(
+      {
+        chainId,
+        block: { number: 100, timestamp: 100 },
+        params: {
+          id: marketIdValue,
+          onBehalf: supplier,
+          assets: 100n,
+          shares: 100n,
+        },
+      },
+      context
+    );
+
+    await updateStateOnWithdraw(
+      {
+        chainId,
+        block: { number: 200, timestamp: 200 },
+        params: {
+          id: marketIdValue,
+          onBehalf: supplier,
+          assets: 100n,
+          shares: 100n,
+        },
+      },
+      context
+    );
+
+    await updateStateOnSupply(
+      {
+        chainId,
+        block: { number: 300, timestamp: 300 },
+        params: {
+          id: marketIdValue,
+          onBehalf: supplier,
+          assets: 50n,
+          shares: 50n,
+        },
+      },
+      context
+    );
+
+    await updateStateOnWithdraw(
+      {
+        chainId,
+        block: { number: 400, timestamp: 400 },
+        params: {
+          id: marketIdValue,
+          onBehalf: supplier,
+          assets: 60n,
+          shares: 50n,
+        },
+      },
+      context
+    );
+
+    const position = positions.get(positionId(chainId, marketIdValue, supplier));
+    assert.ok(position);
+    assert.equal(position.firstSupplyTimestamp, 100n);
+    assert.equal(position.lastSupplyActivityTimestamp, 400n);
+    assert.equal(position.supplyAssetsPrincipal, -10n);
+    assert.equal(position.totalSuppliedAssets, 150n);
+    assert.equal(position.totalWithdrawnAssets, 160n);
+    assert.equal(position.supplyWeightedAssetsSeconds, 15_000n);
+    assert.equal(position.supplyActiveSeconds, 200n);
+
+    assert.equal(positionDailyFlows.size, 1);
+    const dailyFlow = positionDailyFlows.get(
+      positionDailyFlowId(chainId, marketIdValue, supplier, 0n)
+    );
+    assert.ok(dailyFlow);
+    assert.equal(dailyFlow.firstActivityTimestamp, 100n);
+    assert.equal(dailyFlow.lastActivityTimestamp, 400n);
+    assert.equal(dailyFlow.suppliedAssets, 150n);
+    assert.equal(dailyFlow.withdrawnAssets, 160n);
+    assert.equal(dailyFlow.netSupplyAssets, -10n);
+    assert.equal(dailyFlow.openingSupplyShares, 0n);
+    assert.equal(dailyFlow.closingSupplyShares, 0n);
+    assert.equal(dailyFlow.openingSupplyAssetsPrincipal, 0n);
+    assert.equal(dailyFlow.closingSupplyAssetsPrincipal, -10n);
+    assert.equal(dailyFlow.supplyWeightedAssetsSeconds, 15_000n);
+    assert.equal(dailyFlow.supplyActiveSeconds, 200n);
+  });
+
+  it("creates one sparse supply flow per touched day", async () => {
+    const { positionDailyFlows, context } = createMarketContext();
+    const chainId = 1;
+    const marketIdValue = "0xmarket-daily-supply-flow";
+    const supplier = "0xS000000000000000000000000000000000000011";
+    const day = 86_400;
+
+    await updateStateOnSupply(
+      {
+        chainId,
+        block: { number: 100, timestamp: 100 },
+        params: {
+          id: marketIdValue,
+          onBehalf: supplier,
+          assets: 100n,
+          shares: 100n,
+        },
+      },
+      context
+    );
+
+    await updateStateOnWithdraw(
+      {
+        chainId,
+        block: { number: 200, timestamp: day + 200 },
+        params: {
+          id: marketIdValue,
+          onBehalf: supplier,
+          assets: 40n,
+          shares: 40n,
+        },
+      },
+      context
+    );
+
+    await updateStateOnSupply(
+      {
+        chainId,
+        block: { number: 300, timestamp: day + 400 },
+        params: {
+          id: marketIdValue,
+          onBehalf: supplier,
+          assets: 20n,
+          shares: 20n,
+        },
+      },
+      context
+    );
+
+    const firstDay = positionDailyFlows.get(
+      positionDailyFlowId(chainId, marketIdValue, supplier, 0n)
+    );
+    const secondDay = positionDailyFlows.get(
+      positionDailyFlowId(chainId, marketIdValue, supplier, BigInt(day))
+    );
+
+    assert.equal(positionDailyFlows.size, 2);
+    assert.ok(firstDay);
+    assert.equal(firstDay.suppliedAssets, 100n);
+    assert.equal(firstDay.withdrawnAssets, 0n);
+    assert.equal(firstDay.closingSupplyShares, 100n);
+
+    assert.ok(secondDay);
+    assert.equal(secondDay.firstActivityTimestamp, BigInt(day + 200));
+    assert.equal(secondDay.lastActivityTimestamp, BigInt(day + 400));
+    assert.equal(secondDay.suppliedAssets, 20n);
+    assert.equal(secondDay.withdrawnAssets, 40n);
+    assert.equal(secondDay.netSupplyAssets, -20n);
+    assert.equal(secondDay.openingSupplyShares, 100n);
+    assert.equal(secondDay.closingSupplyShares, 80n);
+    assert.equal(secondDay.openingSupplyAssetsPrincipal, 100n);
+    assert.equal(secondDay.closingSupplyAssetsPrincipal, 80n);
+    assert.equal(secondDay.supplyWeightedAssetsSeconds, 32_000n);
+    assert.equal(secondDay.supplyActiveSeconds, 400n);
+  });
+
   it("tracks market collateralAssets across collateral flows", async () => {
     const { markets, positions, context } = createMarketContext();
     const chainId = 1;

@@ -14,12 +14,14 @@ const createContext = () => {
   const marketHourlySnapshots = new Map<string, any>();
   const marketDailySnapshots = new Map<string, any>();
   const positions = new Map<string, any>();
+  const positionDailyFlows = new Map<string, any>();
 
   return {
     markets,
     marketHourlySnapshots,
     marketDailySnapshots,
     positions,
+    positionDailyFlows,
     context: {
       Market: {
         get: async (id: string) => markets.get(id),
@@ -36,6 +38,10 @@ const createContext = () => {
       Position: {
         get: async (id: string) => positions.get(id),
         set: (entity: any) => positions.set(entity.id, entity),
+      },
+      PositionDailyFlow: {
+        get: async (id: string) => positionDailyFlows.get(id),
+        set: (entity: any) => positionDailyFlows.set(entity.id, entity),
       },
     } as any,
   };

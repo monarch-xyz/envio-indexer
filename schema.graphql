@@ -329,7 +329,7 @@ type MarketDailySnapshot @index(fields: ["market_id", "bucketStart"]) {
   netCollateralAssetsChange: BigInt!
 }
 
-type Position {
+type Position @index(fields: ["user", "chainId"]) {
   id: ID!                      # "{chainId}_{marketId}_{user}"
   chainId: Int!
   marketId: String!
@@ -340,7 +340,46 @@ type Position {
   borrowShares: BigInt!
   collateral: BigInt!
 
+  # Lifetime supply history, updated incrementally from Supply/Withdraw events.
+  firstSupplyTimestamp: BigInt
+  lastSupplyActivityTimestamp: BigInt
+  supplyAssetsPrincipal: BigInt!
+  totalSuppliedAssets: BigInt!
+  totalWithdrawnAssets: BigInt!
+  supplyWeightedAssetsSeconds: BigInt!
+  supplyActiveSeconds: BigInt!
+
   # Relationship
+  market_id: String!           # FK to Market
+}
+
+# Sparse user supply flow: one row per position and UTC day that had activity.
+type PositionDailyFlow
+  @index(fields: ["user", "chainId", "bucketStart"])
+  @index(fields: ["position_id", "bucketStart"]) {
+  id: ID!                      # "{positionId}_day_{bucketStart}"
+  chainId: Int!
+  marketId: String!
+  user: String!
+  bucketStart: BigInt!
+  firstActivityTimestamp: BigInt!
+  lastActivityTimestamp: BigInt!
+
+  suppliedAssets: BigInt!
+  withdrawnAssets: BigInt!
+  netSupplyAssets: BigInt!
+
+  openingSupplyShares: BigInt!
+  closingSupplyShares: BigInt!
+  openingSupplyAssetsPrincipal: BigInt!
+  closingSupplyAssetsPrincipal: BigInt!
+
+  # Accumulated from bucketStart through lastActivityTimestamp. Consumers can
+  # extend the final interval using closingSupplyAssetsPrincipal.
+  supplyWeightedAssetsSeconds: BigInt!
+  supplyActiveSeconds: BigInt!
+
+  position_id: String!         # FK to Position
   market_id: String!           # FK to Market
 }
 

@@ -7,6 +7,7 @@ import type {
   MarketDailySnapshot,
   MarketHourlySnapshot,
   Position,
+  PositionDailyFlow,
   Authorization,
   Adapter,
   LegacyVault,
@@ -21,6 +22,7 @@ import {
   authorizationId,
   marketId,
   normalizeAddress,
+  positionDailyFlowId,
   positionId,
   vaultAdapterId,
   vaultCapId,
@@ -44,6 +46,7 @@ type StateContext = {
   MarketHourlySnapshot: EntityStore<MarketHourlySnapshot>;
   MarketDailySnapshot: EntityStore<MarketDailySnapshot>;
   Position: EntityStore<Position>;
+  PositionDailyFlow: EntityStore<PositionDailyFlow>;
   Authorization: EntityStore<Authorization>;
   Adapter: EntityStore<Adapter>;
   LegacyVault: EntityStore<LegacyVault>;
@@ -69,6 +72,8 @@ type MarketMutation = {
   market: Market;
   delta?: MarketSnapshotDelta;
 };
+
+const SECONDS_PER_DAY = 86_400n;
 
 // ============================================
 // Position Helper - Get or Create
@@ -96,6 +101,13 @@ async function getOrCreatePosition(
     supplyShares: 0n,
     borrowShares: 0n,
     collateral: 0n,
+    firstSupplyTimestamp: undefined,
+    lastSupplyActivityTimestamp: undefined,
+    supplyAssetsPrincipal: 0n,
+    totalSuppliedAssets: 0n,
+    totalWithdrawnAssets: 0n,
+    supplyWeightedAssetsSeconds: 0n,
+    supplyActiveSeconds: 0n,
     market_id: marketId(chainId, marketIdStr),
   };
 }
@@ -268,6 +280,93 @@ async function updatePositionForMarket(
   context.Position.set(mutate(position));
 }
 
+type SupplyFlowDelta = {
+  suppliedAssets?: bigint;
+  withdrawnAssets?: bigint;
+};
+
+function getDayBucketStart(timestamp: bigint) {
+  return (timestamp / SECONDS_PER_DAY) * SECONDS_PER_DAY;
+}
+
+async function upsertPositionDailyFlow(
+  context: StateContext,
+  before: Position,
+  after: Position,
+  timestamp: bigint,
+  delta: SupplyFlowDelta
+) {
+  const bucketStart = getDayBucketStart(timestamp);
+  const id = positionDailyFlowId(
+    before.chainId,
+    before.marketId,
+    before.user,
+    bucketStart
+  );
+  const existing = await context.PositionDailyFlow.get(id);
+  const flow: PositionDailyFlow = existing ?? {
+    id,
+    chainId: before.chainId,
+    marketId: before.marketId,
+    user: before.user,
+    bucketStart,
+    firstActivityTimestamp: timestamp,
+    lastActivityTimestamp: bucketStart,
+    suppliedAssets: 0n,
+    withdrawnAssets: 0n,
+    netSupplyAssets: 0n,
+    openingSupplyShares: before.supplyShares,
+    closingSupplyShares: before.supplyShares,
+    openingSupplyAssetsPrincipal: before.supplyAssetsPrincipal,
+    closingSupplyAssetsPrincipal: before.supplyAssetsPrincipal,
+    supplyWeightedAssetsSeconds: 0n,
+    supplyActiveSeconds: 0n,
+    position_id: before.id,
+    market_id: before.market_id,
+  };
+  const elapsed =
+    timestamp > flow.lastActivityTimestamp
+      ? timestamp - flow.lastActivityTimestamp
+      : 0n;
+  const suppliedAssets = delta.suppliedAssets ?? 0n;
+  const withdrawnAssets = delta.withdrawnAssets ?? 0n;
+  const hasActiveSupply = flow.closingSupplyAssetsPrincipal > 0n;
+
+  context.PositionDailyFlow.set({
+    ...flow,
+    lastActivityTimestamp: timestamp,
+    suppliedAssets: flow.suppliedAssets + suppliedAssets,
+    withdrawnAssets: flow.withdrawnAssets + withdrawnAssets,
+    netSupplyAssets: flow.netSupplyAssets + suppliedAssets - withdrawnAssets,
+    closingSupplyShares: after.supplyShares,
+    closingSupplyAssetsPrincipal: after.supplyAssetsPrincipal,
+    supplyWeightedAssetsSeconds:
+      flow.supplyWeightedAssetsSeconds +
+      (hasActiveSupply ? flow.closingSupplyAssetsPrincipal * elapsed : 0n),
+    supplyActiveSeconds:
+      flow.supplyActiveSeconds + (hasActiveSupply ? elapsed : 0n),
+  });
+}
+
+function advanceSupplyHistory(position: Position, timestamp: bigint): Position {
+  const lastTimestamp = position.lastSupplyActivityTimestamp;
+  if (lastTimestamp === undefined || timestamp <= lastTimestamp) {
+    return position;
+  }
+
+  const elapsed = timestamp - lastTimestamp;
+  if (position.supplyAssetsPrincipal <= 0n) {
+    return position;
+  }
+
+  return {
+    ...position,
+    supplyWeightedAssetsSeconds:
+      position.supplyWeightedAssetsSeconds + position.supplyAssetsPrincipal * elapsed,
+    supplyActiveSeconds: position.supplyActiveSeconds + elapsed,
+  };
+}
+
 function zeroFloorSub(value: bigint, delta: bigint) {
   return value > delta ? value - delta : 0n;
 }
@@ -391,16 +490,27 @@ export async function updateStateOnSupply(
     },
   }));
 
-  await updatePositionForMarket(
+  const position = await getOrCreatePosition(
     context,
     event.chainId,
     event.params.id,
-    event.params.onBehalf,
-    (position) => ({
-      ...position,
-      supplyShares: position.supplyShares + event.params.shares,
-    })
+    event.params.onBehalf
   );
+  const timestamp = BigInt(event.block.timestamp);
+  const advancedPosition = advanceSupplyHistory(position, timestamp);
+  const nextPosition = {
+    ...advancedPosition,
+    supplyShares: advancedPosition.supplyShares + event.params.shares,
+    firstSupplyTimestamp: advancedPosition.firstSupplyTimestamp ?? timestamp,
+    lastSupplyActivityTimestamp: timestamp,
+    supplyAssetsPrincipal: advancedPosition.supplyAssetsPrincipal + event.params.assets,
+    totalSuppliedAssets: advancedPosition.totalSuppliedAssets + event.params.assets,
+  };
+
+  context.Position.set(nextPosition);
+  await upsertPositionDailyFlow(context, position, nextPosition, timestamp, {
+    suppliedAssets: event.params.assets,
+  });
 }
 
 /**
@@ -427,16 +537,26 @@ export async function updateStateOnWithdraw(
     },
   }));
 
-  await updatePositionForMarket(
+  const position = await getOrCreatePosition(
     context,
     event.chainId,
     event.params.id,
-    event.params.onBehalf,
-    (position) => ({
-      ...position,
-      supplyShares: position.supplyShares - event.params.shares,
-    })
+    event.params.onBehalf
   );
+  const timestamp = BigInt(event.block.timestamp);
+  const advancedPosition = advanceSupplyHistory(position, timestamp);
+  const nextPosition = {
+    ...advancedPosition,
+    supplyShares: advancedPosition.supplyShares - event.params.shares,
+    lastSupplyActivityTimestamp: timestamp,
+    supplyAssetsPrincipal: advancedPosition.supplyAssetsPrincipal - event.params.assets,
+    totalWithdrawnAssets: advancedPosition.totalWithdrawnAssets + event.params.assets,
+  };
+
+  context.Position.set(nextPosition);
+  await upsertPositionDailyFlow(context, position, nextPosition, timestamp, {
+    withdrawnAssets: event.params.assets,
+  });
 }
 
 /**
