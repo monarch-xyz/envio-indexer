@@ -59,6 +59,7 @@ describe("Market state tracking", () => {
     await updateStateOnSupply(
       {
         chainId,
+        logIndex: 0,
         block: { number: 100, timestamp: 100 },
         params: {
           id: marketIdValue,
@@ -73,6 +74,7 @@ describe("Market state tracking", () => {
     await updateStateOnWithdraw(
       {
         chainId,
+        logIndex: 1,
         block: { number: 200, timestamp: 200 },
         params: {
           id: marketIdValue,
@@ -87,6 +89,7 @@ describe("Market state tracking", () => {
     await updateStateOnSupply(
       {
         chainId,
+        logIndex: 2,
         block: { number: 300, timestamp: 300 },
         params: {
           id: marketIdValue,
@@ -101,6 +104,7 @@ describe("Market state tracking", () => {
     await updateStateOnWithdraw(
       {
         chainId,
+        logIndex: 3,
         block: { number: 400, timestamp: 400 },
         params: {
           id: marketIdValue,
@@ -115,6 +119,7 @@ describe("Market state tracking", () => {
     await updateStateOnWithdraw(
       {
         chainId,
+        logIndex: 4,
         block: { number: 500, timestamp: 500 },
         params: {
           id: marketIdValue,
@@ -128,11 +133,24 @@ describe("Market state tracking", () => {
 
     const position = positions.get(positionId(chainId, marketIdValue, supplier));
     assert.ok(position);
+    assert.equal(position.id, positionId(chainId, marketIdValue, supplier));
+    assert.equal(position.chainId, chainId);
+    assert.equal(position.marketId, marketIdValue);
+    assert.equal(position.user, supplier.toLowerCase());
+    assert.equal(position.supplyShares, 0n);
+    assert.equal(position.borrowShares, 0n);
+    assert.equal(position.collateral, 0n);
+    assert.equal(position.market_id, marketId(chainId, marketIdValue));
     assert.equal(position.firstSupplyTimestamp, 100n);
     assert.equal(position.lastSupplyActivityTimestamp, 500n);
+    assert.equal(position.lastSupplyActivityBlockNumber, 500n);
+    assert.equal(position.lastSupplyActivityLogIndex, 4);
     assert.equal(position.totalSuppliedAssets, 150n);
     assert.equal(position.totalWithdrawnAssets, 170n);
     assert.equal(position.netSupplyAssets, -20n);
+    assert.equal(position.supplyAssetsPrincipal, -20n);
+    assert.equal(position.supplyWeightedAssetsSeconds, 15_000n);
+    assert.equal(position.supplyActiveSeconds, 200n);
 
     assert.equal(positionDailyFlows.size, 1);
     const dailyFlow = positionDailyFlows.get(
@@ -141,6 +159,8 @@ describe("Market state tracking", () => {
     assert.ok(dailyFlow);
     assert.equal(dailyFlow.firstActivityTimestamp, 100n);
     assert.equal(dailyFlow.lastActivityTimestamp, 500n);
+    assert.equal(dailyFlow.lastActivityBlockNumber, 500n);
+    assert.equal(dailyFlow.lastActivityLogIndex, 4);
     assert.equal(dailyFlow.suppliedAssets, 150n);
     assert.equal(dailyFlow.withdrawnAssets, 170n);
     assert.equal(dailyFlow.netSupplyAssets, -20n);
