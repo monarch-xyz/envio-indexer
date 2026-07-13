@@ -343,11 +343,9 @@ type Position @index(fields: ["user", "chainId"]) {
   # Lifetime supply history, updated incrementally from Supply/Withdraw events.
   firstSupplyTimestamp: BigInt
   lastSupplyActivityTimestamp: BigInt
-  supplyAssetsPrincipal: BigInt!
   totalSuppliedAssets: BigInt!
   totalWithdrawnAssets: BigInt!
-  supplyWeightedAssetsSeconds: BigInt!
-  supplyActiveSeconds: BigInt!
+  netSupplyAssets: BigInt!     # signed supplied - withdrawn; may be negative
 
   # Relationship
   market_id: String!           # FK to Market
@@ -367,16 +365,14 @@ type PositionDailyFlow
 
   suppliedAssets: BigInt!
   withdrawnAssets: BigInt!
-  netSupplyAssets: BigInt!
+  netSupplyAssets: BigInt!     # signed supplied - withdrawn; may be negative
 
   openingSupplyShares: BigInt!
   closingSupplyShares: BigInt!
-  openingSupplyAssetsPrincipal: BigInt!
-  closingSupplyAssetsPrincipal: BigInt!
 
   # Accumulated from bucketStart through lastActivityTimestamp. Consumers can
-  # extend the final interval using closingSupplyAssetsPrincipal.
-  supplyWeightedAssetsSeconds: BigInt!
+  # extend the final interval using closingSupplyShares.
+  supplyWeightedSharesSeconds: BigInt!
   supplyActiveSeconds: BigInt!
 
   position_id: String!         # FK to Position

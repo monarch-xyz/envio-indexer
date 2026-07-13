@@ -103,11 +103,9 @@ async function getOrCreatePosition(
     collateral: 0n,
     firstSupplyTimestamp: undefined,
     lastSupplyActivityTimestamp: undefined,
-    supplyAssetsPrincipal: 0n,
     totalSuppliedAssets: 0n,
     totalWithdrawnAssets: 0n,
-    supplyWeightedAssetsSeconds: 0n,
-    supplyActiveSeconds: 0n,
+    netSupplyAssets: 0n,
     market_id: marketId(chainId, marketIdStr),
   };
 }
@@ -317,9 +315,7 @@ async function upsertPositionDailyFlow(
     netSupplyAssets: 0n,
     openingSupplyShares: before.supplyShares,
     closingSupplyShares: before.supplyShares,
-    openingSupplyAssetsPrincipal: before.supplyAssetsPrincipal,
-    closingSupplyAssetsPrincipal: before.supplyAssetsPrincipal,
-    supplyWeightedAssetsSeconds: 0n,
+    supplyWeightedSharesSeconds: 0n,
     supplyActiveSeconds: 0n,
     position_id: before.id,
     market_id: before.market_id,
@@ -330,7 +326,7 @@ async function upsertPositionDailyFlow(
       : 0n;
   const suppliedAssets = delta.suppliedAssets ?? 0n;
   const withdrawnAssets = delta.withdrawnAssets ?? 0n;
-  const hasActiveSupply = flow.closingSupplyAssetsPrincipal > 0n;
+  const hasActiveSupply = flow.closingSupplyShares > 0n;
 
   context.PositionDailyFlow.set({
     ...flow,
@@ -339,32 +335,12 @@ async function upsertPositionDailyFlow(
     withdrawnAssets: flow.withdrawnAssets + withdrawnAssets,
     netSupplyAssets: flow.netSupplyAssets + suppliedAssets - withdrawnAssets,
     closingSupplyShares: after.supplyShares,
-    closingSupplyAssetsPrincipal: after.supplyAssetsPrincipal,
-    supplyWeightedAssetsSeconds:
-      flow.supplyWeightedAssetsSeconds +
-      (hasActiveSupply ? flow.closingSupplyAssetsPrincipal * elapsed : 0n),
+    supplyWeightedSharesSeconds:
+      flow.supplyWeightedSharesSeconds +
+      (hasActiveSupply ? flow.closingSupplyShares * elapsed : 0n),
     supplyActiveSeconds:
       flow.supplyActiveSeconds + (hasActiveSupply ? elapsed : 0n),
   });
-}
-
-function advanceSupplyHistory(position: Position, timestamp: bigint): Position {
-  const lastTimestamp = position.lastSupplyActivityTimestamp;
-  if (lastTimestamp === undefined || timestamp <= lastTimestamp) {
-    return position;
-  }
-
-  const elapsed = timestamp - lastTimestamp;
-  if (position.supplyAssetsPrincipal <= 0n) {
-    return position;
-  }
-
-  return {
-    ...position,
-    supplyWeightedAssetsSeconds:
-      position.supplyWeightedAssetsSeconds + position.supplyAssetsPrincipal * elapsed,
-    supplyActiveSeconds: position.supplyActiveSeconds + elapsed,
-  };
 }
 
 function zeroFloorSub(value: bigint, delta: bigint) {
@@ -497,14 +473,13 @@ export async function updateStateOnSupply(
     event.params.onBehalf
   );
   const timestamp = BigInt(event.block.timestamp);
-  const advancedPosition = advanceSupplyHistory(position, timestamp);
   const nextPosition = {
-    ...advancedPosition,
-    supplyShares: advancedPosition.supplyShares + event.params.shares,
-    firstSupplyTimestamp: advancedPosition.firstSupplyTimestamp ?? timestamp,
+    ...position,
+    supplyShares: position.supplyShares + event.params.shares,
+    firstSupplyTimestamp: position.firstSupplyTimestamp ?? timestamp,
     lastSupplyActivityTimestamp: timestamp,
-    supplyAssetsPrincipal: advancedPosition.supplyAssetsPrincipal + event.params.assets,
-    totalSuppliedAssets: advancedPosition.totalSuppliedAssets + event.params.assets,
+    totalSuppliedAssets: position.totalSuppliedAssets + event.params.assets,
+    netSupplyAssets: position.netSupplyAssets + event.params.assets,
   };
 
   context.Position.set(nextPosition);
@@ -544,13 +519,12 @@ export async function updateStateOnWithdraw(
     event.params.onBehalf
   );
   const timestamp = BigInt(event.block.timestamp);
-  const advancedPosition = advanceSupplyHistory(position, timestamp);
   const nextPosition = {
-    ...advancedPosition,
-    supplyShares: advancedPosition.supplyShares - event.params.shares,
+    ...position,
+    supplyShares: position.supplyShares - event.params.shares,
     lastSupplyActivityTimestamp: timestamp,
-    supplyAssetsPrincipal: advancedPosition.supplyAssetsPrincipal - event.params.assets,
-    totalWithdrawnAssets: advancedPosition.totalWithdrawnAssets + event.params.assets,
+    totalWithdrawnAssets: position.totalWithdrawnAssets + event.params.assets,
+    netSupplyAssets: position.netSupplyAssets - event.params.assets,
   };
 
   context.Position.set(nextPosition);
