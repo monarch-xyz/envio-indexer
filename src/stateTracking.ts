@@ -7,6 +7,7 @@ import type {
   MarketDailySnapshot,
   MarketHourlySnapshot,
   Position,
+  PositionDailyFlow,
   Authorization,
   Adapter,
   LegacyVault,
@@ -21,6 +22,7 @@ import {
   authorizationId,
   marketId,
   normalizeAddress,
+  positionDailyFlowId,
   positionId,
   vaultAdapterId,
   vaultCapId,
@@ -44,6 +46,7 @@ type StateContext = {
   MarketHourlySnapshot: EntityStore<MarketHourlySnapshot>;
   MarketDailySnapshot: EntityStore<MarketDailySnapshot>;
   Position: EntityStore<Position>;
+  PositionDailyFlow: EntityStore<PositionDailyFlow>;
   Authorization: EntityStore<Authorization>;
   Adapter: EntityStore<Adapter>;
   LegacyVault: EntityStore<LegacyVault>;
@@ -62,6 +65,7 @@ type MarketEventBlock = {
 type MarketEvent<TParams extends { id: string }> = {
   chainId: number;
   block: MarketEventBlock;
+  logIndex?: number;
   params: TParams;
 };
 
@@ -69,6 +73,8 @@ type MarketMutation = {
   market: Market;
   delta?: MarketSnapshotDelta;
 };
+
+const SECONDS_PER_DAY = 86_400n;
 
 // ============================================
 // Position Helper - Get or Create
@@ -96,6 +102,16 @@ async function getOrCreatePosition(
     supplyShares: 0n,
     borrowShares: 0n,
     collateral: 0n,
+    firstSupplyTimestamp: undefined,
+    lastSupplyActivityTimestamp: undefined,
+    lastSupplyActivityBlockNumber: undefined,
+    lastSupplyActivityLogIndex: undefined,
+    totalSuppliedAssets: 0n,
+    totalWithdrawnAssets: 0n,
+    netSupplyAssets: 0n,
+    supplyAssetsPrincipal: 0n,
+    supplyWeightedAssetsSeconds: 0n,
+    supplyActiveSeconds: 0n,
     market_id: marketId(chainId, marketIdStr),
   };
 }
@@ -268,6 +284,104 @@ async function updatePositionForMarket(
   context.Position.set(mutate(position));
 }
 
+type SupplyFlowDelta = {
+  suppliedAssets?: bigint;
+  withdrawnAssets?: bigint;
+};
+
+function getDayBucketStart(timestamp: bigint) {
+  return (timestamp / SECONDS_PER_DAY) * SECONDS_PER_DAY;
+}
+
+async function upsertPositionDailyFlow(
+  context: StateContext,
+  before: Position,
+  after: Position,
+  timestamp: bigint,
+  blockNumber: bigint,
+  logIndex: number,
+  delta: SupplyFlowDelta
+) {
+  const bucketStart = getDayBucketStart(timestamp);
+  const id = positionDailyFlowId(
+    before.chainId,
+    before.marketId,
+    before.user,
+    bucketStart
+  );
+  const existing = await context.PositionDailyFlow.get(id);
+  const flow: PositionDailyFlow = existing ?? {
+    id,
+    chainId: before.chainId,
+    marketId: before.marketId,
+    user: before.user,
+    bucketStart,
+    firstActivityTimestamp: timestamp,
+    lastActivityTimestamp: bucketStart,
+    lastActivityBlockNumber: blockNumber,
+    lastActivityLogIndex: logIndex,
+    suppliedAssets: 0n,
+    withdrawnAssets: 0n,
+    netSupplyAssets: 0n,
+    openingSupplyShares: before.supplyShares,
+    closingSupplyShares: before.supplyShares,
+    supplyWeightedSharesSeconds: 0n,
+    supplyActiveSeconds: 0n,
+    position_id: before.id,
+    market_id: before.market_id,
+  };
+  const elapsed =
+    timestamp > flow.lastActivityTimestamp
+      ? timestamp - flow.lastActivityTimestamp
+      : 0n;
+  const suppliedAssets = delta.suppliedAssets ?? 0n;
+  const withdrawnAssets = delta.withdrawnAssets ?? 0n;
+  const hasActiveSupply = flow.closingSupplyShares > 0n;
+
+  context.PositionDailyFlow.set({
+    ...flow,
+    lastActivityTimestamp: timestamp,
+    lastActivityBlockNumber: blockNumber,
+    lastActivityLogIndex: logIndex,
+    suppliedAssets: flow.suppliedAssets + suppliedAssets,
+    withdrawnAssets: flow.withdrawnAssets + withdrawnAssets,
+    netSupplyAssets: flow.netSupplyAssets + suppliedAssets - withdrawnAssets,
+    closingSupplyShares: after.supplyShares,
+    supplyWeightedSharesSeconds:
+      flow.supplyWeightedSharesSeconds +
+      (hasActiveSupply ? flow.closingSupplyShares * elapsed : 0n),
+    supplyActiveSeconds:
+      flow.supplyActiveSeconds + (hasActiveSupply ? elapsed : 0n),
+  });
+}
+
+/**
+ * Advances the asset-flow accumulator used by the current frontend APY.
+ *
+ * supplyAssetsPrincipal is the signed sum of supplied minus withdrawn assets,
+ * not on-chain position value or cost basis. It can be negative after earned
+ * assets are withdrawn, so it must never be used to decide whether shares are
+ * still active. Daily share-seconds are the canonical exposure representation.
+ */
+function advanceLegacySupplyHistory(position: Position, timestamp: bigint): Position {
+  const lastTimestamp = position.lastSupplyActivityTimestamp;
+  if (lastTimestamp === undefined || timestamp <= lastTimestamp) {
+    return position;
+  }
+
+  const elapsed = timestamp - lastTimestamp;
+  if (position.supplyAssetsPrincipal <= 0n) {
+    return position;
+  }
+
+  return {
+    ...position,
+    supplyWeightedAssetsSeconds:
+      position.supplyWeightedAssetsSeconds + position.supplyAssetsPrincipal * elapsed,
+    supplyActiveSeconds: position.supplyActiveSeconds + elapsed,
+  };
+}
+
 function zeroFloorSub(value: bigint, delta: bigint) {
   return value > delta ? value - delta : 0n;
 }
@@ -391,15 +505,35 @@ export async function updateStateOnSupply(
     },
   }));
 
-  await updatePositionForMarket(
+  const position = await getOrCreatePosition(
     context,
     event.chainId,
     event.params.id,
-    event.params.onBehalf,
-    (position) => ({
-      ...position,
-      supplyShares: position.supplyShares + event.params.shares,
-    })
+    event.params.onBehalf
+  );
+  const timestamp = BigInt(event.block.timestamp);
+  const advancedPosition = advanceLegacySupplyHistory(position, timestamp);
+  const nextPosition = {
+    ...advancedPosition,
+    supplyShares: advancedPosition.supplyShares + event.params.shares,
+    firstSupplyTimestamp: advancedPosition.firstSupplyTimestamp ?? timestamp,
+    lastSupplyActivityTimestamp: timestamp,
+    lastSupplyActivityBlockNumber: BigInt(event.block.number),
+    lastSupplyActivityLogIndex: event.logIndex ?? 0,
+    totalSuppliedAssets: advancedPosition.totalSuppliedAssets + event.params.assets,
+    netSupplyAssets: advancedPosition.netSupplyAssets + event.params.assets,
+    supplyAssetsPrincipal: advancedPosition.supplyAssetsPrincipal + event.params.assets,
+  };
+
+  context.Position.set(nextPosition);
+  await upsertPositionDailyFlow(
+    context,
+    position,
+    nextPosition,
+    timestamp,
+    BigInt(event.block.number),
+    event.logIndex ?? 0,
+    { suppliedAssets: event.params.assets }
   );
 }
 
@@ -427,15 +561,34 @@ export async function updateStateOnWithdraw(
     },
   }));
 
-  await updatePositionForMarket(
+  const position = await getOrCreatePosition(
     context,
     event.chainId,
     event.params.id,
-    event.params.onBehalf,
-    (position) => ({
-      ...position,
-      supplyShares: position.supplyShares - event.params.shares,
-    })
+    event.params.onBehalf
+  );
+  const timestamp = BigInt(event.block.timestamp);
+  const advancedPosition = advanceLegacySupplyHistory(position, timestamp);
+  const nextPosition = {
+    ...advancedPosition,
+    supplyShares: advancedPosition.supplyShares - event.params.shares,
+    lastSupplyActivityTimestamp: timestamp,
+    lastSupplyActivityBlockNumber: BigInt(event.block.number),
+    lastSupplyActivityLogIndex: event.logIndex ?? 0,
+    totalWithdrawnAssets: advancedPosition.totalWithdrawnAssets + event.params.assets,
+    netSupplyAssets: advancedPosition.netSupplyAssets - event.params.assets,
+    supplyAssetsPrincipal: advancedPosition.supplyAssetsPrincipal - event.params.assets,
+  };
+
+  context.Position.set(nextPosition);
+  await upsertPositionDailyFlow(
+    context,
+    position,
+    nextPosition,
+    timestamp,
+    BigInt(event.block.number),
+    event.logIndex ?? 0,
+    { withdrawnAssets: event.params.assets }
   );
 }
 

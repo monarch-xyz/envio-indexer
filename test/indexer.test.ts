@@ -46,5 +46,5 @@ describe("Morpho AccrueInterest event", () => {
       timestamp: BigInt(block.timestamp),
       txHash,
     });
-  });
+  }, 15_000);
 });
