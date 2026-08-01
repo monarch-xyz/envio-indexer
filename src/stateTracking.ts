@@ -214,10 +214,7 @@ async function getOrCreateVaultCap(
   };
 }
 
-type KnownAdapterType =
-  | "MorphoMarketV1Adapter"
-  | "MorphoMarketV1AdapterV2"
-  | "MorphoVaultV1Adapter";
+type KnownAdapterType = "MorphoMarketV1Adapter" | "MorphoMarketV1AdapterV2";
 
 async function upsertKnownAdapter(
   context: StateContext,
@@ -917,27 +914,6 @@ export async function updateStateOnCreateMorphoMarketV1Adapter(
     timestamp: event.block.timestamp,
     txHash: event.transaction.hash,
     morphoAddress: event.params.morpho,
-  });
-}
-
-export async function updateStateOnCreateMorphoVaultV1Adapter(
-  event: {
-    chainId: number;
-    srcAddress: string;
-    block: { timestamp: number };
-    transaction: { hash: string };
-    params: { parentVault: string; morphoVaultV1Adapter: string };
-  },
-  context: StateContext
-) {
-  await upsertKnownAdapter(context, {
-    chainId: event.chainId,
-    vaultAddress: event.params.parentVault,
-    adapterAddress: event.params.morphoVaultV1Adapter,
-    adapterType: "MorphoVaultV1Adapter",
-    factoryAddress: event.srcAddress,
-    timestamp: event.block.timestamp,
-    txHash: event.transaction.hash,
   });
 }
 

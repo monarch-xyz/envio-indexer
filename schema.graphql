@@ -751,19 +751,6 @@ type MorphoMarketV1AdapterFactory_CreateAdapter {
   txHash: String!
 }
 
-type MorphoVaultV1AdapterFactory_CreateAdapter {
-  id: ID!
-  adapter: Adapter!
-  vault: Vault!
-  parentVault: String!
-  morphoVaultV1: String!
-  morphoVaultV1Adapter: String!
-  factoryAddress: String!
-  timestamp: BigInt!
-  chainId: Int!
-  txHash: String!
-}
-
 type MorphoMarketV1AdapterV2Factory_CreateFactory {
   id: ID!
   factoryAddress: String!
