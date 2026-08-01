@@ -33,6 +33,7 @@ import type {
   MetaMorphoVault_ReallocateWithdraw,
   MetaMorphoVault_Withdraw,
   MorphoMarketV1AdapterFactory_CreateAdapter,
+  MorphoVaultV1AdapterFactory_CreateAdapter,
   MorphoMarketV1AdapterV2Factory_CreateFactory,
   MorphoMarketV1AdapterV2Factory_CreateAdapter,
 } from "envio";
@@ -75,6 +76,9 @@ type EventContext = {
   MetaMorphoVault_Withdraw: { set: (entity: MetaMorphoVault_Withdraw) => void };
   MorphoMarketV1AdapterFactory_CreateAdapter: {
     set: (entity: MorphoMarketV1AdapterFactory_CreateAdapter) => void;
+  };
+  MorphoVaultV1AdapterFactory_CreateAdapter: {
+    set: (entity: MorphoVaultV1AdapterFactory_CreateAdapter) => void;
   };
   MorphoMarketV1AdapterV2Factory_CreateFactory: {
     set: (entity: MorphoMarketV1AdapterV2Factory_CreateFactory) => void;
@@ -892,6 +896,32 @@ export function trackCreateMorphoMarketV1Adapter(
     txHash: event.transaction.hash,
   };
   context.MorphoMarketV1AdapterFactory_CreateAdapter.set(entity);
+}
+
+export function trackCreateMorphoVaultV1Adapter(
+  event: {
+    chainId: number;
+    srcAddress: string;
+    block: { number: number; timestamp: number };
+    logIndex: number;
+    transaction: { hash: string };
+    params: { parentVault: string; morphoVaultV1: string; morphoVaultV1Adapter: string };
+  },
+  context: EventContext
+) {
+  const entity: MorphoVaultV1AdapterFactory_CreateAdapter = {
+    id: eventId(event.chainId, event.block.number, event.logIndex),
+    adapter_id: adapterId(event.chainId, event.params.morphoVaultV1Adapter),
+    vault_id: vaultId(event.chainId, event.params.parentVault),
+    parentVault: normalizeAddress(event.params.parentVault),
+    morphoVaultV1: normalizeAddress(event.params.morphoVaultV1),
+    morphoVaultV1Adapter: normalizeAddress(event.params.morphoVaultV1Adapter),
+    factoryAddress: normalizeAddress(event.srcAddress),
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    txHash: event.transaction.hash,
+  };
+  context.MorphoVaultV1AdapterFactory_CreateAdapter.set(entity);
 }
 
 export function trackCreateMorphoMarketV1AdapterV2Factory(

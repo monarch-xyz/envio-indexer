@@ -27,6 +27,7 @@ import {
   trackCreateVaultV2,
   trackCreateLegacyVault,
   trackCreateMorphoMarketV1Adapter,
+  trackCreateMorphoVaultV1Adapter,
   trackVaultAllocate,
   trackCreateMorphoMarketV1AdapterV2,
   trackCreateMorphoMarketV1AdapterV2Factory,
@@ -57,6 +58,7 @@ import {
   updateStateOnCreateVaultV2,
   updateStateOnCreateLegacyVault,
   updateStateOnCreateMorphoMarketV1Adapter,
+  updateStateOnCreateMorphoVaultV1Adapter,
   updateStateOnCreateMorphoMarketV1AdapterV2,
   updateStateOnVaultAddAdapter,
   updateStateOnVaultDeposit,
@@ -352,6 +354,17 @@ indexer.onEvent(
   async ({ event, context }) => {
     trackCreateMorphoMarketV1Adapter(event, context);
     await updateStateOnCreateMorphoMarketV1Adapter(event, context);
+  },
+);
+
+indexer.onEvent(
+  {
+    contract: "MorphoVaultV1AdapterFactory",
+    event: "CreateMorphoVaultV1Adapter",
+  },
+  async ({ event, context }) => {
+    trackCreateMorphoVaultV1Adapter(event, context);
+    await updateStateOnCreateMorphoVaultV1Adapter(event, context);
   },
 );
 

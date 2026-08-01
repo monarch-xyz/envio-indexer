@@ -3,6 +3,7 @@ import { adapterId, vaultAdapterId } from "../src/ids";
 import {
   updateStateOnCreateMorphoMarketV1AdapterV2,
   updateStateOnCreateMorphoMarketV1Adapter,
+  updateStateOnCreateMorphoVaultV1Adapter,
   updateStateOnVaultAddAdapter,
 } from "../src/stateTracking";
 
@@ -76,6 +77,30 @@ describe("Known adapter deployment tracking", () => {
     assert.equal(entity.vaultAddress, "0xb000000000000000000000000000000000000002");
     assert.equal(entity.adapterAddress, "0xa000000000000000000000000000000000000002");
     assert.equal(entity.morphoAddress, undefined);
+  });
+
+  it("stores MorphoVaultV1Adapter deployments as known adapters", async () => {
+    const { adapters, context } = createAdapterContext();
+
+    await updateStateOnCreateMorphoVaultV1Adapter(
+      {
+        chainId: 4663,
+        srcAddress: "0xF000000000000000000000000000000000000004",
+        block: { timestamp: 567 },
+        transaction: { hash: "0x123" },
+        params: {
+          parentVault: "0xB000000000000000000000000000000000000004",
+          morphoVaultV1Adapter: "0xA000000000000000000000000000000000000004",
+        },
+      },
+      context
+    );
+
+    const entity = adapters.get(adapterId(4663, "0xA000000000000000000000000000000000000004"));
+    assert.ok(entity);
+    assert.equal(entity.adapterType, "MorphoVaultV1Adapter");
+    assert.equal(entity.vaultAddress, "0xb000000000000000000000000000000000000004");
+    assert.equal(entity.adapterAddress, "0xa000000000000000000000000000000000000004");
   });
 
   it("handles vault attachment before known adapter deployment without ordering issues", async () => {
