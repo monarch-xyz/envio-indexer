@@ -379,6 +379,24 @@ chains:
   - name: MorphoMarketV1AdapterV2Factory
     address:
     - 0xaEff6Ef4B7bbfbAadB18b634A8F11392CBeB72Be
+- id: 4663
+  hypersync_config:
+    url: https://robinhood.hypersync.xyz
+  start_block: 0
+  contracts:
+  - name: Morpho
+    address:
+    - 0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010
+  - name: AdaptiveCurveIrm
+    address:
+    - 0x2BD3d5965B26B51814AC95127B2b80dD6CcC0fa1
+  - name: VaultV2Factory
+    address:
+    - 0x0FBad98595b0186dA120E41f77C102beb49f803c
+  - name: VaultV2
+  - name: MorphoMarketV1AdapterV2Factory
+    address:
+    - 0x79370Ed003CE325C088E530d5e8655c99c2993e1
 - id: 8453
   start_block: 0
   contracts:

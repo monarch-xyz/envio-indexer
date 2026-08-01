@@ -27,6 +27,7 @@ const ADAPTIVE_CURVE_IRM_ADDRESSES_BY_CHAIN = new Map<number, Set<string>>([
   [137, new Set(["0xe675a2161d4a6e2de2eed70ac98eebf257fbf0b0"])],
   [143, new Set(["0x09475a3d6ea8c314c592b1a3799bde044e2f400f"])],
   [999, new Set(["0xd4a426f010986dcad727e8dd6eed44ca4a9b7483"])],
+  [4663, new Set(["0x2bd3d5965b26b51814ac95127b2b80dd6ccc0fa1"])],
   [8453, new Set(["0x46415998764c29ab2a25cbea6254146d50d22687"])],
   [42161, new Set(["0x66f30587fb8d4206918deb78eca7d5ebbafd06da"])],
   [747474, new Set(["0x4f708c0ae7ded3d74736594c2109c2e3c065b428"])],
