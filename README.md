@@ -25,6 +25,6 @@ pnpm codegen
 
 ### Pre-requisites
 
-- [Node.js (use v22 or newer)](https://nodejs.org/en/download/current)
-- [pnpm (use v8 or newer)](https://pnpm.io/installation)
+- [Node.js (use v22.15 or newer)](https://nodejs.org/en/download/current)
+- [pnpm (use v10.23.0, as pinned in package.json)](https://pnpm.io/installation)
 - [Docker desktop](https://www.docker.com/products/docker-desktop/)

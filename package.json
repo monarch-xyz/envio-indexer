@@ -16,10 +16,10 @@
     "vitest": "4.0.16"
   },
   "dependencies": {
-    "envio": "3.2.1"
+    "envio": "3.14.0"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.15.0"
   },
   "packageManager": "pnpm@10.23.0+sha1.b4a44ab0dc2adf2e36371d11d8eb0dc78ffc976c"
 }
